@@ -27,6 +27,16 @@ class TestParseXml:
         with pytest.raises(HTTPException):
             parse_xml("not xml at all <<<")
 
+    def test_total_row_filtered(self):
+        # '총계' 요약 행은 합산 중복 방지를 위해 파싱에서 제외
+        total_item = (
+            "<item><year>총계</year><statCdCntnKor1>-</statCdCntnKor1><statKor>-</statKor>"
+            "<hsCd>-</hsCd><expDlr>999</expDlr><impDlr>0</impDlr><balPayments>999</balPayments></item>"
+        )
+        rows, _ = parse_xml(make_xml([total_item, make_item()]))
+        assert len(rows) == 1
+        assert rows[0]["country"] == "중국"
+
     def test_comma_separated_numbers(self):
         item = (
             "<item><year>2026.05</year><statKor>미국</statKor><hsCd>87</hsCd>"

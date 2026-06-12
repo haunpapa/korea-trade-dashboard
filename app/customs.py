@@ -56,6 +56,9 @@ def parse_xml(text: str) -> tuple[list[Row], int | None]:
 
     rows: list[Row] = []
     for it in root.iter("item"):
+        # '총계' 요약 행은 개별 행의 합과 동일 → 포함 시 2배 중복되므로 제외
+        if (it.findtext(F_PERIOD) or "").strip() == "총계":
+            continue
         rows.append(
             {
                 "period": (it.findtext(F_PERIOD) or "").strip(),
