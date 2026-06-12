@@ -18,7 +18,8 @@ def make_item(
     period: str = "2026.05",
 ) -> str:
     return (
-        f"<item><year>{period}</year><statKor>{country}</statKor><hsCd>{hs}</hsCd>"
+        f"<item><year>{period}</year><statCdCntnKor1>{country}</statCdCntnKor1>"
+        f"<statKor>품목명예시</statKor><hsCd>{hs}</hsCd>"
         f"<expDlr>{exp:.0f}</expDlr><impDlr>{imp:.0f}</impDlr>"
         f"<balPayments>{exp - imp:.0f}</balPayments></item>"
     )

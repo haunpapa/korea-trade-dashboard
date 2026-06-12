@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # 응답 필드명 — data.go.kr '활용신청 명세서'와 다르면 여기만 고치면 됩니다.
 # (/debug/raw 로 실제 응답을 확인하세요)
 F_PERIOD = "year"
-F_COUNTRY = "statKor"
+F_COUNTRY = "statCdCntnKor1"  # 국가명 (※ statKor는 '품목명'이므로 주의 — 공식 명세 확인됨)
 F_HS = "hsCd"
 F_EXP = "expDlr"
 F_IMP = "impDlr"
