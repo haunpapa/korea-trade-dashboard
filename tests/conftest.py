@@ -39,6 +39,7 @@ def make_xml(items: list[str], total: int | None = None, code: str = "00") -> st
 def settings(tmp_path) -> Settings:
     return Settings(
         customs_service_key="TESTKEY",
+        exim_api_key="TESTEXIM",
         cache_dir=tmp_path / "cache",
         retries=0,
         concurrency=4,

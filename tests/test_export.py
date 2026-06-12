@@ -26,7 +26,7 @@ async def test_collect_and_write(make_client, tmp_path):
 
     assert set(data) == {
         "monthly.json", "trend.json", "sector-trend.json", "region-trend.json",
-        "item-trend.json", "item-countries.json", "meta.json",
+        "item-trend.json", "item-countries.json", "fx.json", "meta.json",
     }
     assert len(data["item-trend.json"]["반도체"]) == 3
     # 국가 분포: mock은 중국(3억)·미국(2억) → share 60/40
@@ -40,6 +40,6 @@ async def test_collect_and_write(make_client, tmp_path):
 
     outdir = tmp_path / "data"
     paths = write_outputs(data, outdir)
-    assert len(paths) == 7
+    assert len(paths) == 8
     loaded = json.loads((outdir / "monthly.json").read_text(encoding="utf-8"))
     assert loaded["totals"]["exports"] == pytest.approx(495.0)

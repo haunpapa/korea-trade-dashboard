@@ -29,7 +29,7 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app import aggregate  # noqa: E402
+from app import aggregate, fx  # noqa: E402
 from app.cache import FileCache  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.customs import CustomsClient  # noqa: E402
@@ -39,7 +39,7 @@ logger = logging.getLogger("export_static")
 
 DATA_FILES = (
     "monthly.json", "trend.json", "sector-trend.json", "region-trend.json",
-    "item-trend.json", "item-countries.json", "meta.json",
+    "item-trend.json", "item-countries.json", "fx.json", "meta.json",
 )
 
 
@@ -61,6 +61,7 @@ async def collect(client: CustomsClient, end_yymm: str, months: int) -> dict[str
     }
     item_trend = await aggregate.build_item_trends(client, end_yymm, months)
     item_countries = await aggregate.build_item_countries(client, end_yymm)
+    fx_trend = await fx.build_fx_trend(client, end_yymm, months)
     meta = {
         "generated_at": dt.datetime.now().isoformat(timespec="seconds"),
         "end_yymm": end_yymm,
@@ -74,6 +75,7 @@ async def collect(client: CustomsClient, end_yymm: str, months: int) -> dict[str
         "region-trend.json": region_trend,
         "item-trend.json": item_trend,
         "item-countries.json": item_countries,
+        "fx.json": fx_trend,
         "meta.json": meta,
     }
 

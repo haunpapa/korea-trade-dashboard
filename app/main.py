@@ -14,7 +14,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from . import __version__, aggregate
+from . import __version__, aggregate, fx
 from .cache import FileCache
 from .config import get_settings
 from .customs import CustomsClient
@@ -168,6 +168,19 @@ async def api_item_trend(
         _client(request), _validate_yymm(end or _default_yymm()), months, refresh=bool(refresh)
     )
     return trends[item]
+
+
+@app.get("/api/fx-trend")
+async def api_fx_trend(
+    request: Request,
+    months: int = Query(default=12, ge=1, le=36),
+    end: str | None = None,
+    refresh: int = 0,
+) -> list[dict]:
+    """월별 원/달러 고시환율 (관세환율정보 API — 미신청 시 rate=null)."""
+    return await fx.build_fx_trend(
+        _client(request), _validate_yymm(end or _default_yymm()), months, refresh=bool(refresh)
+    )
 
 
 @app.get("/api/item-countries")

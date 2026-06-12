@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     allow_origins: str = "*"  # 콤마 구분 목록
     log_level: str = "INFO"
 
+    # 한국수출입은행 환율 API (koreaexim.go.kr 발급) — 추세 차트 환율 오버레이용
+    exim_api_key: str = ""
+
     # 정적 데이터 업로드 (scripts/export_static.py --push)
     github_token: str = ""  # fine-grained PAT, Contents: Read/Write
     github_repo: str = "haunpapa/korea-trade-dashboard"
