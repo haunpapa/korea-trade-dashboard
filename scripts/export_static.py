@@ -37,7 +37,10 @@ from app.mappings import REGION_NAMES, SECTOR_GROUPS  # noqa: E402
 
 logger = logging.getLogger("export_static")
 
-DATA_FILES = ("monthly.json", "trend.json", "sector-trend.json", "region-trend.json", "meta.json")
+DATA_FILES = (
+    "monthly.json", "trend.json", "sector-trend.json", "region-trend.json",
+    "item-trend.json", "meta.json",
+)
 
 
 def default_yymm() -> str:
@@ -56,6 +59,7 @@ async def collect(client: CustomsClient, end_yymm: str, months: int) -> dict[str
     region_trend = {
         r: await aggregate.build_region_trend(client, r, end_yymm, months) for r in REGION_NAMES
     }
+    item_trend = await aggregate.build_item_trends(client, end_yymm, months)
     meta = {
         "generated_at": dt.datetime.now().isoformat(timespec="seconds"),
         "end_yymm": end_yymm,
@@ -67,6 +71,7 @@ async def collect(client: CustomsClient, end_yymm: str, months: int) -> dict[str
         "trend.json": trend,
         "sector-trend.json": sector_trend,
         "region-trend.json": region_trend,
+        "item-trend.json": item_trend,
         "meta.json": meta,
     }
 

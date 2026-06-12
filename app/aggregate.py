@@ -210,6 +210,21 @@ async def build_sector_trend(
     return out
 
 
+async def build_item_trends(
+    client: CustomsClient, end_yymm: str, months: int = 12, refresh: bool = False
+) -> dict[str, list[dict]]:
+    """전 품목의 월별 수출 시계열 {품목명: [{m, exp}, ...]} — 모달 차트용."""
+    seq = month_seq(end_yymm, months)
+    results = await asyncio.gather(*(sectors(client, ym, refresh) for ym in seq))
+    out: dict[str, list[dict]] = {item: [] for item in SECTOR_BUCKETS}
+    for ym, secs in zip(seq, results, strict=True):
+        label = f"{ym[2:4]}.{ym[4:]}"
+        vals = {i["name"]: i["value"] for g in secs for i in g["items"]}
+        for item in SECTOR_BUCKETS:
+            out[item].append({"m": label, "exp": vals.get(item)})
+    return out
+
+
 async def build_region_trend(
     client: CustomsClient, region: str, end_yymm: str, months: int = 12, refresh: bool = False
 ) -> list[dict]:

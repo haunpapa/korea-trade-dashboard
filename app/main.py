@@ -18,7 +18,7 @@ from . import __version__, aggregate
 from .cache import FileCache
 from .config import get_settings
 from .customs import CustomsClient
-from .mappings import REGION_NAMES, SECTOR_GROUPS
+from .mappings import REGION_NAMES, SECTOR_BUCKETS, SECTOR_GROUPS
 
 DASHBOARD_HTML = Path(__file__).resolve().parent.parent / "korea-trade-sector-dashboard.html"
 
@@ -149,6 +149,25 @@ async def api_region_trend(
         months,
         refresh=bool(refresh),
     )
+
+
+@app.get("/api/item-trend")
+async def api_item_trend(
+    request: Request,
+    item: str,
+    months: int = Query(default=12, ge=1, le=36),
+    end: str | None = None,
+    refresh: int = 0,
+) -> list[dict]:
+    """품목별 월별 수출 시계열 (모달 차트용)."""
+    if item not in SECTOR_BUCKETS:
+        raise HTTPException(
+            422, f"item은 SECTOR_BUCKETS 품목 중 하나여야 합니다: {', '.join(SECTOR_BUCKETS)}"
+        )
+    trends = await aggregate.build_item_trends(
+        _client(request), _validate_yymm(end or _default_yymm()), months, refresh=bool(refresh)
+    )
+    return trends[item]
 
 
 @app.get("/debug/raw")

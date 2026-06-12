@@ -25,8 +25,10 @@ async def test_collect_and_write(make_client, tmp_path):
     data = await collect(client, "202605", months=3)
 
     assert set(data) == {
-        "monthly.json", "trend.json", "sector-trend.json", "region-trend.json", "meta.json",
+        "monthly.json", "trend.json", "sector-trend.json", "region-trend.json",
+        "item-trend.json", "meta.json",
     }
+    assert len(data["item-trend.json"]["반도체"]) == 3
     assert data["monthly.json"]["totals"]["exports"] == pytest.approx(495.0)  # 99 ch × 5억$
     assert len(data["trend.json"]) == 3
     assert "IT·반도체" in data["sector-trend.json"]
@@ -35,6 +37,6 @@ async def test_collect_and_write(make_client, tmp_path):
 
     outdir = tmp_path / "data"
     paths = write_outputs(data, outdir)
-    assert len(paths) == 5
+    assert len(paths) == 6
     loaded = json.loads((outdir / "monthly.json").read_text(encoding="utf-8"))
     assert loaded["totals"]["exports"] == pytest.approx(495.0)

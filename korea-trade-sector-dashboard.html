@@ -70,6 +70,22 @@
   .badge.full{background:var(--brand-soft);color:var(--brand)}
   .badge.partial{background:var(--amber-bg);color:var(--amber)}
   .badge.live{background:#E6F7EF;color:#00754A;border:1px solid #9ADBBE}
+
+  /* ---------- 12개월 추이 모달 ---------- */
+  #sec-matrix .grp-top,#sec-matrix .it{cursor:pointer}
+  #sec-matrix .it:hover .it-name,#sec-matrix .grp-top:hover .grp-name{color:var(--brand)}
+  .modal-bg{position:fixed;inset:0;background:rgba(11,26,43,.45);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:50;padding:18px}
+  .modal-bg[hidden]{display:none}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 64px rgba(16,33,64,.25);width:min(680px,100%);padding:20px 22px}
+  .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .modal-head h3{font-size:16px;font-weight:800;letter-spacing:-.02em}
+  .modal-head .m-sub{font-size:11.5px;color:var(--ink3);margin-top:2px}
+  .modal-close{border:none;background:var(--inset);border-radius:8px;width:30px;height:30px;font-size:14px;color:var(--ink2);cursor:pointer;flex:none}
+  .modal-close:hover{background:var(--line)}
+  .modal-chart svg{width:100%;height:auto;display:block}
+  .m-stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--ink2)}
+  .m-stats b{font-family:var(--mono);color:var(--ink)}
+  .m-empty{padding:46px 16px;text-align:center;color:var(--ink2);font-size:13px;background:var(--inset);border:1px dashed var(--line);border-radius:12px;line-height:1.6}
   .ctx .src{margin-left:auto;color:var(--ink3)}
 
   /* ---------- Generic section ---------- */
@@ -296,7 +312,7 @@
         <div class="eyebrow">Signature · 섹터 모멘텀</div>
         <h2>산업분야별 수출 구조</h2>
       </div>
-      <div class="hint">막대 길이 = 수출액 규모 · 색 = 전년대비 증감(<span style="color:var(--pos)">증가</span>/<span style="color:var(--neg)">감소</span>)</div>
+      <div class="hint">막대 길이 = 수출액 규모 · 색 = 전년대비 증감(<span style="color:var(--pos)">증가</span>/<span style="color:var(--neg)">감소</span>) · <b style="color:var(--brand)">클릭 = 12개월 추이</b></div>
     </div>
     <div class="matrix" id="matrix"></div>
   </section>
@@ -351,6 +367,18 @@
     <span id="src-line"></span><br>
     출처 · <b>산업통상자원부</b> 월간 수출입동향, <b>관세청</b> 순별 수출입현황(잠정치). 순별 통계는 단기 지표로 조업일수 등에 따라 변동될 수 있습니다.
   </footer>
+
+  <!-- 12개월 추이 모달 -->
+  <div class="modal-bg" id="modalBg" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <div><h3 id="modalTitle"></h3><div class="m-sub" id="modalSub"></div></div>
+        <button class="modal-close" id="modalClose" aria-label="닫기">✕</button>
+      </div>
+      <div class="modal-chart" id="modalChart"></div>
+      <div class="m-stats" id="modalStats"></div>
+    </div>
+  </div>
 
 </div>
 
@@ -557,13 +585,13 @@ function buildMatrix(){
     g.items.sort((a,b)=>(b.value||0)-(a.value||0)).forEach(it=>{
       const col=momColor(it.yoy);
       const w=Math.max(4,Math.abs(it.yoy||0)/maxAbsYoY*100);
-      itemsHtml+=`<div class="it">
+      itemsHtml+=`<div class="it" data-item="${it.name}">
           <div class="it-name">${it.name}${it.star?'<span class="star-tag">최대 동력</span>':''}${it.est?'<span class="est-tag">추정</span>':''}</div>
           <div class="it-right"><span class="it-val">${it.value!=null?fmt(it.value):'–'}${it.est?'*':''}</span>${chip(it.yoy)}</div>
           <div class="it-bar-wrap"><div class="it-bar${it.est?' it-bar-est':''}" style="width:${w}%;background-color:${col.bg}"></div></div>
         </div>`;
     });
-    card.innerHTML=`<div class="grp-top">
+    card.innerHTML=`<div class="grp-top" data-group="${g.name}">
         <div><div class="grp-name">${g.name}</div><div class="grp-meta">수출 비중 ${share.toFixed(1)}%</div></div>
         <div class="grp-val"><div class="v">${fmt(g.sum)}</div><div class="u">억 달러</div></div>
       </div>
@@ -739,6 +767,7 @@ let SECTOR_TREND = {
 const TREND_TABS=["전체","IT·반도체","모빌리티","에너지·화학","소재·기계","소비재·바이오"];
 // 권역별 추이 — API 연동 시 탭이 나타나고, 클릭 시 /api/region-trend에서 지연 로드됩니다.
 let REGION_TREND = {};
+let ITEM_TREND = {};  // 품목별 12개월 시계열 (클릭 모달 차트용)
 const REGION_TABS=["중국","미국","아세안","EU","일본","대만","홍콩","인도","중동"];
 let activeTrend="전체";
 function trendSeries(sec){
@@ -876,16 +905,18 @@ async function hydrateFromApi(){
 }
 
 async function hydrateFromStatic(){
-  const [m,t,st,rt,meta]=await Promise.all([
+  const [m,t,st,rt,itr,meta]=await Promise.all([
     fetchJson(STATIC_DATA_BASE+"/monthly.json"),
     fetchJson(STATIC_DATA_BASE+"/trend.json"),
     fetchJson(STATIC_DATA_BASE+"/sector-trend.json").catch(()=>null),
     fetchJson(STATIC_DATA_BASE+"/region-trend.json").catch(()=>null),
+    fetchJson(STATIC_DATA_BASE+"/item-trend.json").catch(()=>null),
     fetchJson(STATIC_DATA_BASE+"/meta.json").catch(()=>null),
   ]);
   applyMonthly(m); applyTrend(t);
   if(st) for(const g in st){ if(Array.isArray(st[g])&&st[g].length) SECTOR_TREND[g]=seriesOf(st[g]); }
   if(rt) for(const r in rt){ if(Array.isArray(rt[r])&&rt[r].length) REGION_TREND[r]=seriesOf(rt[r]); }
+  if(itr) for(const k in itr){ if(Array.isArray(itr[k])&&itr[k].length) ITEM_TREND[k]=seriesOf(itr[k]); }
   const when = meta&&meta.generated_at ? ' · '+meta.generated_at.slice(5,10).replace('-','.') : '';
   LIVE_LABEL='🗂 GitHub 데이터'+when;
 }
@@ -904,6 +935,73 @@ async function hydrate(){
   buildTrend();  // 성공/실패 모두 '연동 중' 표시 원복
 }
 
+/* ---------- 12개월 추이 모달 ---------- */
+const pct=(a,b)=>(!b||a==null)?null:(a-b)/b*100;
+function closeModal(){ $('#modalBg').hidden=true; }
+
+function drawModalChart(series){
+  const pts=series.map((v,i)=>({v,i})).filter(p=>p.v!=null);
+  if(pts.length<2) return null;
+  const W=640,H=250,padL=14,padR=14,top=18,bot=200,labY=232;
+  const n=series.length, step=(W-padL-padR)/Math.max(n-1,1);
+  const vals=pts.map(p=>p.v);
+  const lo=Math.min(...vals)*0.94, hi=(Math.max(...vals)*1.06)||1;
+  const X=i=>padL+step*i, Y=v=>bot-(v-lo)/((hi-lo)||1)*(bot-top);
+  let line='',dots='',labs='';
+  pts.forEach((p,k)=>{ line+=(k?'L':'M')+X(p.i).toFixed(1)+' '+Y(p.v).toFixed(1)+' '; });
+  const area=`M${X(pts[0].i).toFixed(1)} ${bot} `+pts.map(p=>'L'+X(p.i).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ')+` L${X(pts[pts.length-1].i).toFixed(1)} ${bot} Z`;
+  pts.forEach((p,k)=>{
+    const last=k===pts.length-1;
+    dots+=`<circle cx="${X(p.i).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="${last?4.5:3}" fill="${last?'var(--brand)':'#fff'}" stroke="var(--brand)" stroke-width="2"><title>${TREND[p.i]?TREND[p.i].m:''} · ${fmt(p.v)}억$</title></circle>`;
+  });
+  series.forEach((v,i)=>{ if(i%2===0||i===n-1) labs+=`<text x="${X(i).toFixed(1)}" y="${labY}" text-anchor="middle" font-size="10" fill="var(--ink3)" style="font-family:var(--mono)">${TREND[i]?TREND[i].m:''}</text>`; });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="최근 12개월 수출 추이">
+    <defs><linearGradient id="mg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B49FF" stop-opacity=".14"/><stop offset="1" stop-color="#1B49FF" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${padL}" y1="${bot}" x2="${W-padR}" y2="${bot}" stroke="var(--line)"/>
+    <path d="${area}" fill="url(#mg)"/>
+    <path d="${line.trim()}" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}${labs}</svg>`;
+}
+
+function showModal(name, series, type){
+  $('#modalTitle').textContent=name;
+  $('#modalSub').textContent=(type==='group'?'산업분야':'품목')+' · 최근 12개월 수출 (HS 기준, 억 달러)';
+  const chart=$('#modalChart'), stats=$('#modalStats');
+  const svg=series?drawModalChart(series):null;
+  if(svg){
+    chart.innerHTML=svg;
+    const pts=series.filter(v=>v!=null);
+    const cur=pts[pts.length-1];
+    const mom=pts.length>1?pct(cur,pts[pts.length-2]):null;
+    const chg=pct(cur,pts[0]);
+    stats.innerHTML=`<span>최신 <b>${fmt(cur)}</b>억$</span>
+      <span>전월비 <b>${mom==null?'–':(mom>=0?'+':'')+mom.toFixed(1)+'%'}</b></span>
+      <span>최고 <b>${fmt(Math.max(...pts))}</b></span>
+      <span>최저 <b>${fmt(Math.min(...pts))}</b></span>
+      <span>12개월 변화 <b>${chg==null?'–':(chg>=0?'+':'')+chg.toFixed(1)+'%'}</b></span>`;
+  }else{
+    chart.innerHTML=`<div class="m-empty">📡 ${name}의 월별 추이 데이터가 아직 없습니다.<br>관세청 API 연동 또는 데이터 갱신 후 표시됩니다.</div>`;
+    stats.innerHTML='';
+  }
+  $('#modalBg').hidden=false;
+}
+
+async function openTrendModal(name, type){
+  let series = type==='group' ? SECTOR_TREND[name] : ITEM_TREND[name];
+  showModal(name, series||null, type);
+  if(!series && DATA_SOURCE==='api'){
+    try{
+      const url = type==='group'
+        ? API_BASE+"/api/sector-trend?group="+encodeURIComponent(name)+"&months=12"
+        : API_BASE+"/api/item-trend?item="+encodeURIComponent(name)+"&months=12";
+      const d=await fetchJson(url);
+      series=seriesOf(d);
+      if(type==='group') SECTOR_TREND[name]=series; else ITEM_TREND[name]=series;
+      if(!$('#modalBg').hidden) showModal(name, series, type);
+    }catch(e){ console.warn("추이 로드 실패:", name, e.message||e); }
+  }
+}
+
 /* init */
 // 배포 페이지(http/https 서빙)에서는 수동 업데이트 절차·API 연동 안내를 숨김 (file://로 열 때만 표시)
 if(location.protocol.startsWith("http")){
@@ -911,6 +1009,16 @@ if(location.protocol.startsWith("http")){
   if(gs) gs.style.display='none';
   if(ab) ab.style.display='none';
 }
+// 모달 바인딩: 닫기 버튼·배경 클릭·ESC, 매트릭스 클릭 위임
+$('#modalClose').onclick=closeModal;
+$('#modalBg').addEventListener('click',e=>{ if(e.target.id==='modalBg') closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+$('#matrix').addEventListener('click',e=>{
+  const it=e.target.closest('.it');
+  if(it&&it.dataset.item){ openTrendModal(it.dataset.item,'item'); return; }
+  const gt=e.target.closest('.grp-top');
+  if(gt&&gt.dataset.group){ openTrendModal(gt.dataset.group,'group'); }
+});
 buildSeg(); render(); buildTrendTabs(); buildTrend(); hydrate();
 </script>
 </body>
