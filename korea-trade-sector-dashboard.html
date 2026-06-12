@@ -854,7 +854,9 @@ const STATIC_DATA_BASE = "https://raw.githubusercontent.com/haunpapa/korea-trade
 const API_BASE = API_BASE_OVERRIDE || (location.protocol.startsWith("http") ? "" : null);
 let DATA_SOURCE = null;  // 'api' | 'static' | null
 
-const fetchJson = url => fetch(url,{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error(r.status+" "+url);return r.json();});
+// 타임아웃(기본 20초) 내 응답 없으면 실패 처리 → 다음 데이터 소스로 폴백 (배포 직후 캐시 워밍업 중 무한 대기 방지)
+const fetchJson = (url, ms=20000) => fetch(url,{cache:"no-cache",signal:AbortSignal.timeout(ms)})
+  .then(r=>{if(!r.ok)throw new Error(r.status+" "+url);return r.json();});
 
 function applyMonthly(m){ if(m&&m.totals) DATA.monthly={...DATA.monthly,...m}; }
 function applyTrend(t){ if(Array.isArray(t)&&t.length) TREND=t; }
