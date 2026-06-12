@@ -81,18 +81,28 @@ ruff check app tests
 black app tests
 ```
 
-## 5. ⚠️ 핵심: data.go.kr은 해외 IP를 차단합니다
+## 5. 데이터 갱신 — 서버 자동(권장) 또는 PC 수동
 
-관세청 API는 **한국 IP에서만** 호출됩니다(해외 호스팅에선 HTTP 403).
-그래서 이 프로젝트는 **하이브리드 구조**를 사용합니다:
+> (구버전 안내 수정) 과거 "data.go.kr 해외 IP 차단(403)" 전제는 더 이상 사실이 아닙니다 —
+> 2026-06 확인 결과 Railway에서도 관세청 API 호출이 가능하며, 한도 초과 시 429만 발생합니다.
 
-```
-[한국 로컬 PC]  update-data.bat 실행
-   → 관세청 API 수집 → data/*.json 생성 → GitHub 업로드 (git 불필요)
-[어디서든]  대시보드가 raw.githubusercontent.com/.../data/*.json 을 읽음
-```
+### ① 서버 자동 export (권장 — Railway가 매일 수집해 GitHub에 push)
 
-### 데이터 갱신 (발표일 1·11·21일 이후 실행)
+Railway 환경변수 두 개만 설정하면 PC 없이 완전 자동화됩니다:
+
+| 변수 | 값 | 설명 |
+|---|---|---|
+| `GITHUB_TOKEN` | `github_pat_...` | fine-grained, 이 레포 Contents: R/W |
+| `AUTO_EXPORT_KST` | `07:30` | 매일 실행 시각(한국시간). 비우면 비활성 |
+| `EXPORT_KEY` | 임의 문자열 | (선택) `/admin/export?key=...` 수동 트리거용 |
+
+- 매 실행 전 **최근 2개월 캐시만 삭제** 후 재조회 → 확정치 현행화(매월 15일경) 반영, 과거 달은 캐시 재사용으로 API 호출 최소화
+- 상태 확인: `GET /health`의 `export` 필드 (`next_run`/`last_ok`/`last_error`)
+- 수동 실행: `GET|POST /admin/export?key=EXPORT_KEY` (백그라운드 실행, 202 즉시 반환)
+- ⚠️ Railway가 이 레포 자동 배포 중이면 **Settings → Watch Paths**에 `data/**` 제외 패턴을 추가하세요
+  (데이터 커밋마다 재배포·캐시 초기화 방지): `/**` + `!data/**` 또는 `!/data/**`
+
+### ② PC 수동 export (백업 수단)
 
 ```bash
 # 사전 1회: .env에 GITHUB_TOKEN 추가 (fine-grained, 이 레포 Contents: R/W만)
@@ -101,7 +111,7 @@ update-data.bat            # Windows 더블클릭
 python scripts/export_static.py --push
 ```
 
-자동화: Windows 작업 스케줄러에 `update-data.bat`을 매월 1·11·21일 등록.
+발표일은 매월 1일(월간)·11일·21일(순별), 월간 확정치 현행화는 15일경입니다.
 
 ### 대시보드 데이터 우선순위
 ① 같은 출처 API(한국 IP에서 백엔드 실행 시 실시간) → ② GitHub 정적 JSON → ③ 내장 데이터.

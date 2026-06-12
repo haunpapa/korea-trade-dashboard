@@ -29,10 +29,15 @@ class Settings(BaseSettings):
     # 한국수출입은행 환율 API (koreaexim.go.kr 발급) — 추세 차트 환율 오버레이용
     exim_api_key: str = ""
 
-    # 정적 데이터 업로드 (scripts/export_static.py --push)
+    # 정적 데이터 업로드 (scripts/export_static.py --push, 서버 자동 export)
     github_token: str = ""  # fine-grained PAT, Contents: Read/Write
     github_repo: str = "haunpapa/korea-trade-dashboard"
     github_branch: str = "main"
+
+    # 서버(Railway) 일일 자동 export — 매일 이 시각(KST)에 수집→GitHub push. 비우면 비활성.
+    auto_export_kst: str = ""  # 예: "07:30"
+    auto_export_months: int = 12
+    export_key: str = ""  # /admin/export 수동 트리거 키. 비우면 엔드포인트 비활성.
 
     @property
     def origins(self) -> list[str]:

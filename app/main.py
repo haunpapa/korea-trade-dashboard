@@ -4,6 +4,7 @@
 대시보드: http://localhost:8000/ (같은 출처에서 서빙 → 자동 연동)
 """
 
+import asyncio
 import datetime as dt
 import logging
 from contextlib import asynccontextmanager
@@ -14,7 +15,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from . import __version__, aggregate, fx
+from . import __version__, aggregate, exporter, fx
 from .cache import FileCache
 from .config import get_settings
 from .customs import CustomsClient
@@ -44,7 +45,11 @@ async def lifespan(app: FastAPI):
     )
     async with httpx.AsyncClient() as http:
         app.state.customs = CustomsClient(settings, FileCache(settings.cache_dir), http)
-        yield
+        sched = asyncio.create_task(exporter.scheduler(app.state.customs))
+        try:
+            yield
+        finally:
+            sched.cancel()
 
 
 app = FastAPI(title="관세청 → 수출입동향 섹터 대시보드 API", version=__version__, lifespan=lifespan)
@@ -78,7 +83,26 @@ def health(request: Request) -> dict:
         "service_key_set": bool(settings.customs_service_key),
         "default_yymm": _default_yymm(),
         "cache": _client(request).cache.stats(),
+        "export": exporter.status,
     }
+
+
+@app.api_route("/admin/export", methods=["GET", "POST"])
+async def admin_export(
+    request: Request,
+    key: str = Query(default=""),
+    months: int = Query(default=12, ge=1, le=36),
+) -> dict:
+    """수동 export 트리거 — EXPORT_KEY 설정 시에만 활성. 백그라운드로 수집→push."""
+    settings = get_settings()
+    if not settings.export_key:
+        raise HTTPException(404, "EXPORT_KEY가 설정되지 않아 비활성 상태입니다.")
+    if key != settings.export_key:
+        raise HTTPException(403, "key가 올바르지 않습니다.")
+    if exporter.status["running"]:
+        raise HTTPException(409, "export가 이미 실행 중입니다.")
+    asyncio.create_task(exporter.run_export_logged(_client(request), settings, months))
+    return {"started": True, "months": months, "status_url": "/health"}
 
 
 @app.get("/api/monthly")

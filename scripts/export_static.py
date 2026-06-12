@@ -29,11 +29,9 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app import aggregate, fx  # noqa: E402
 from app.cache import FileCache  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.customs import CustomsClient  # noqa: E402
-from app.mappings import REGION_NAMES, SECTOR_GROUPS  # noqa: E402
 
 logger = logging.getLogger("export_static")
 
@@ -48,36 +46,8 @@ def default_yymm() -> str:
     return today.strftime("%Y%m")
 
 
-async def collect(client: CustomsClient, end_yymm: str, months: int) -> dict[str, Any]:
-    """모든 대시보드 데이터를 수집해 파일명→내용 dict로 반환."""
-    logger.info("수집 시작: end=%s months=%d", end_yymm, months)
-    monthly = await aggregate.build_monthly(client, end_yymm)
-    trend = await aggregate.build_trend(client, end_yymm, months)
-    sector_trend = {
-        g: await aggregate.build_sector_trend(client, g, end_yymm, months) for g in SECTOR_GROUPS
-    }
-    region_trend = {
-        r: await aggregate.build_region_trend(client, r, end_yymm, months) for r in REGION_NAMES
-    }
-    item_trend = await aggregate.build_item_trends(client, end_yymm, months)
-    item_countries = await aggregate.build_item_countries(client, end_yymm)
-    fx_trend = await fx.build_fx_trend(client, end_yymm, months)
-    meta = {
-        "generated_at": dt.datetime.now().isoformat(timespec="seconds"),
-        "end_yymm": end_yymm,
-        "months": months,
-        "source": "관세청 무역통계 API (HS 기준)",
-    }
-    return {
-        "monthly.json": monthly,
-        "trend.json": trend,
-        "sector-trend.json": sector_trend,
-        "region-trend.json": region_trend,
-        "item-trend.json": item_trend,
-        "item-countries.json": item_countries,
-        "fx.json": fx_trend,
-        "meta.json": meta,
-    }
+# collect는 app.exporter와 단일 구현을 공유합니다.
+from app.exporter import collect  # noqa: E402
 
 
 def write_outputs(data: dict[str, Any], outdir: Path) -> list[Path]:
