@@ -921,17 +921,42 @@ async function hydrateFromStatic(){
   LIVE_LABEL='🗂 GitHub 데이터'+when;
 }
 
+/* 브라우저 로컬 캐시 — 새로고침 시 마지막 데이터로 즉시 표시하고 백그라운드에서만 갱신 (SWR) */
+const LS_KEY='ktd-cache-v1';
+function saveLocal(){
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      ts:Date.now(), source:DATA_SOURCE, label:LIVE_LABEL,
+      monthly:DATA.monthly, trend:TREND, st:SECTOR_TREND, rt:REGION_TREND, it:ITEM_TREND,
+    }));
+  }catch(e){ /* 시크릿 모드 등 저장 불가 시 무시 */ }
+}
+function loadLocal(){
+  try{
+    const c=JSON.parse(localStorage.getItem(LS_KEY)||'null');
+    if(!c || Date.now()-c.ts > 7*24*3600*1000) return false;  // 7일 경과 시 무시
+    if(c.monthly&&c.monthly.totals) DATA.monthly={...DATA.monthly,...c.monthly};
+    if(Array.isArray(c.trend)&&c.trend.length) TREND=c.trend;
+    Object.assign(SECTOR_TREND, c.st||{});
+    Object.assign(REGION_TREND, c.rt||{});
+    Object.assign(ITEM_TREND, c.it||{});
+    DATA_SOURCE=c.source||'cache'; LIVE=true; LIVE_LABEL=c.label||'저장 데이터';
+    return true;
+  }catch(e){ return false; }
+}
+
 async function hydrate(){
-  $('#trendRead').innerHTML='<span class="mo">DATA</span> 데이터 연동 중…';
+  if(!LIVE) $('#trendRead').innerHTML='<span class="mo">DATA</span> 데이터 연동 중…';
+  let fresh=null;
   if(API_BASE!==null){
-    try{ await hydrateFromApi(); DATA_SOURCE='api'; }
+    try{ await hydrateFromApi(); fresh='api'; }
     catch(e){ console.warn("API 연동 실패 → 정적 데이터 시도:",e.message||e); }
   }
-  if(!DATA_SOURCE){
-    try{ await hydrateFromStatic(); DATA_SOURCE='static'; }
-    catch(e){ console.warn("정적 데이터 연동 실패 — 내장 데이터를 사용합니다.",e.message||e); }
+  if(!fresh){
+    try{ await hydrateFromStatic(); fresh='static'; }
+    catch(e){ console.warn("정적 데이터 연동 실패 — 저장/내장 데이터를 사용합니다.",e.message||e); }
   }
-  if(DATA_SOURCE){ LIVE=true; buildTrendTabs(); render(); }
+  if(fresh){ DATA_SOURCE=fresh; LIVE=true; saveLocal(); buildTrendTabs(); render(); }
   buildTrend();  // 성공/실패 모두 '연동 중' 표시 원복
 }
 
@@ -1019,6 +1044,7 @@ $('#matrix').addEventListener('click',e=>{
   const gt=e.target.closest('.grp-top');
   if(gt&&gt.dataset.group){ openTrendModal(gt.dataset.group,'group'); }
 });
+loadLocal();  // 저장된 마지막 데이터로 즉시 표시 (있으면)
 buildSeg(); render(); buildTrendTabs(); buildTrend(); hydrate();
 </script>
 </body>
