@@ -982,6 +982,10 @@ async function hydrate(){
     try{ await hydrateFromStatic(); fresh='static'; }
     catch(e){ console.warn("정적 데이터 연동 실패 — 저장/내장 데이터를 사용합니다.",e.message||e); }
   }
+  // API 모드에서 환율 키 미설정이면 정적 fx.json으로 보완
+  if(fresh && !FX.some(x=>x&&x.rate!=null)){
+    try{ const f=await fetchJson(STATIC_DATA_BASE+"/fx.json"); if(Array.isArray(f)&&f.some(x=>x&&x.rate!=null)) FX=f; }catch(e){}
+  }
   if(fresh){ DATA_SOURCE=fresh; LIVE=true; saveLocal(); buildTrendTabs(); render(); }
   buildTrend();  // 성공/실패 모두 '연동 중' 표시 원복
 }
