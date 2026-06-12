@@ -463,7 +463,8 @@ function chip(y){
 }
 
 let active='monthly';
-let LIVE=false;  // 관세청 API 연동 성공 여부 (hydrate에서 설정)
+let LIVE=false;  // 데이터 연동 성공 여부 (hydrate에서 설정)
+let LIVE_LABEL='';  // 배지 문구: API 실시간 / GitHub 정적 데이터
 
 /* ---------- segmented control ---------- */
 function buildSeg(){
@@ -507,7 +508,7 @@ function buildCtx(){
     <b style="color:var(--ink);font-weight:700">${d.period}</b>
     <span>· ${d.status}</span>
     <span class="src">발표 ${d.date} · ${d.src}</span>
-    ${LIVE?'<span class="badge live">⚡ API 실시간 연동</span>':''}`;
+    ${LIVE?'<span class="badge live">'+LIVE_LABEL+'</span>':''}`;
   $('#src-line').textContent = `현재 화면: ${d.period} · ${d.status} (${d.src}, ${d.date} 발표)`;
 }
 
@@ -755,7 +756,8 @@ function trendReadout(i){
   }
 }
 async function loadRegionTrend(name){
-  if(REGION_TREND[name] || API_BASE===null) return;
+  // 정적 모드에서는 hydrate 때 전체 사전 로드됨 → API 모드에서만 지연 로드
+  if(REGION_TREND[name] || API_BASE===null || DATA_SOURCE!=='api') return;
   try{
     const r=await fetch(API_BASE+"/api/region-trend?region="+encodeURIComponent(name)+"&months=12").then(x=>x.json());
     if(Array.isArray(r)&&r.length) REGION_TREND[name]=r.map(x=>x&&x.exp!=null?x.exp:null);
@@ -842,31 +844,62 @@ function buildTrend(){
    (옵션) 실데이터 자동 연동 — 아래에 FastAPI 변환 레이어 URL을 넣으면
    /api/monthly, /api/trend 응답으로 내장 데이터를 덮어씁니다. 비우면 내장값 사용.
    ===================================================================== */
-/* API_BASE_OVERRIDE: 별도 백엔드 주소가 있으면 입력. 예: "https://your-app.up.railway.app"
-   비워두면 — http(s)로 서빙될 때(예: uvicorn이 이 파일을 / 에서 서빙) 같은 출처를 자동 사용,
-   file:// 로 직접 열면 내장 데이터만 사용합니다. */
+/* 데이터 연동 우선순위
+   ① API_BASE (같은 출처 또는 API_BASE_OVERRIDE) — 한국 IP에서 백엔드 실행 시 실시간
+   ② STATIC_DATA_BASE — 로컬 PC에서 update-data.bat로 올린 GitHub 정적 JSON
+   ③ 둘 다 실패 시 내장 데이터
+   ※ data.go.kr은 해외 IP를 차단하므로 해외 호스팅(Railway 등)에서는 ②가 사용됩니다. */
 const API_BASE_OVERRIDE = "";
+const STATIC_DATA_BASE = "https://raw.githubusercontent.com/haunpapa/korea-trade-dashboard/main/data";
 const API_BASE = API_BASE_OVERRIDE || (location.protocol.startsWith("http") ? "" : null);
+let DATA_SOURCE = null;  // 'api' | 'static' | null
+
+const fetchJson = url => fetch(url,{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error(r.status+" "+url);return r.json();});
+
+function applyMonthly(m){ if(m&&m.totals) DATA.monthly={...DATA.monthly,...m}; }
+function applyTrend(t){ if(Array.isArray(t)&&t.length) TREND=t; }
+const seriesOf = d => d.map(x=>x&&x.exp!=null?x.exp:null);
+
+async function hydrateFromApi(){
+  const groups=["IT·반도체","모빌리티","에너지·화학","소재·기계","소비재·바이오"];
+  const [m,t,...secs]=await Promise.all([
+    fetchJson(API_BASE+"/api/monthly"),
+    fetchJson(API_BASE+"/api/trend?months=12"),
+    ...groups.map(g=>fetchJson(API_BASE+"/api/sector-trend?group="+encodeURIComponent(g)+"&months=12")
+      .then(d=>({g,d})).catch(()=>null)),
+  ]);
+  applyMonthly(m); applyTrend(t);
+  secs.forEach(r=>{ if(r&&Array.isArray(r.d)&&r.d.length) SECTOR_TREND[r.g]=seriesOf(r.d); });
+  LIVE_LABEL='⚡ API 실시간 연동';
+}
+
+async function hydrateFromStatic(){
+  const [m,t,st,rt,meta]=await Promise.all([
+    fetchJson(STATIC_DATA_BASE+"/monthly.json"),
+    fetchJson(STATIC_DATA_BASE+"/trend.json"),
+    fetchJson(STATIC_DATA_BASE+"/sector-trend.json").catch(()=>null),
+    fetchJson(STATIC_DATA_BASE+"/region-trend.json").catch(()=>null),
+    fetchJson(STATIC_DATA_BASE+"/meta.json").catch(()=>null),
+  ]);
+  applyMonthly(m); applyTrend(t);
+  if(st) for(const g in st){ if(Array.isArray(st[g])&&st[g].length) SECTOR_TREND[g]=seriesOf(st[g]); }
+  if(rt) for(const r in rt){ if(Array.isArray(rt[r])&&rt[r].length) REGION_TREND[r]=seriesOf(rt[r]); }
+  const when = meta&&meta.generated_at ? ' · '+meta.generated_at.slice(5,10).replace('-','.') : '';
+  LIVE_LABEL='🗂 GitHub 데이터'+when;
+}
+
 async function hydrate(){
-  if(API_BASE===null) return;
-  $('#trendRead').innerHTML='<span class="mo">API</span> 관세청 데이터 연동 중…';
-  try{
-    const groups=["IT·반도체","모빌리티","에너지·화학","소재·기계","소비재·바이오"];
-    const [m,t,...secs]=await Promise.all([
-      fetch(API_BASE+"/api/monthly").then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}),
-      fetch(API_BASE+"/api/trend?months=12").then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}),
-      ...groups.map(g=>fetch(API_BASE+"/api/sector-trend?group="+encodeURIComponent(g)+"&months=12")
-        .then(r=>r.json()).then(d=>({g,d})).catch(()=>null)),
-    ]);
-    if(m&&m.totals) DATA.monthly={...DATA.monthly,...m};
-    if(Array.isArray(t)&&t.length) TREND=t;
-    secs.forEach(r=>{ if(r&&Array.isArray(r.d)&&r.d.length) SECTOR_TREND[r.g]=r.d.map(x=>x&&x.exp!=null?x.exp:x); });
-    LIVE=true;
-    buildTrendTabs(); render(); buildTrend();
-  }catch(e){
-    console.warn("API 연동 실패 — 내장 데이터를 사용합니다.",e);
-    buildTrend();  // '연동 중' 표시 원복
+  $('#trendRead').innerHTML='<span class="mo">DATA</span> 데이터 연동 중…';
+  if(API_BASE!==null){
+    try{ await hydrateFromApi(); DATA_SOURCE='api'; }
+    catch(e){ console.warn("API 연동 실패 → 정적 데이터 시도:",e.message||e); }
   }
+  if(!DATA_SOURCE){
+    try{ await hydrateFromStatic(); DATA_SOURCE='static'; }
+    catch(e){ console.warn("정적 데이터 연동 실패 — 내장 데이터를 사용합니다.",e.message||e); }
+  }
+  if(DATA_SOURCE){ LIVE=true; buildTrendTabs(); render(); }
+  buildTrend();  // 성공/실패 모두 '연동 중' 표시 원복
 }
 
 /* init */

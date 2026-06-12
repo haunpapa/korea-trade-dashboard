@@ -81,28 +81,32 @@ ruff check app tests
 black app tests
 ```
 
-## 5. 배포 (Railway)
+## 5. ⚠️ 핵심: data.go.kr은 해외 IP를 차단합니다
 
-1. 이 폴더를 GitHub repo로 푸시 (`.env`는 `.gitignore`로 제외됨)
-2. Railway → New Project → Deploy from repo — `railway.json`이 Docker 빌드·헬스체크·시작 명령을 자동 적용
-3. **Variables**에 `CUSTOMS_SERVICE_KEY` 등록
-4. (선택) `ALLOW_ORIGINS=https://내도메인` 으로 CORS 제한
+관세청 API는 **한국 IP에서만** 호출됩니다(해외 호스팅에선 HTTP 403).
+그래서 이 프로젝트는 **하이브리드 구조**를 사용합니다:
 
-정적 호스팅(GitHub Pages)에 HTML만 따로 올리는 경우: HTML 하단 `API_BASE_OVERRIDE`에 배포된 서버 주소를 입력하세요.
-
-Docker 직접 실행:
-```bash
-docker build -t korea-trade .
-docker run -p 8000:8000 --env-file .env korea-trade
+```
+[한국 로컬 PC]  update-data.bat 실행
+   → 관세청 API 수집 → data/*.json 생성 → GitHub 업로드 (git 불필요)
+[어디서든]  대시보드가 raw.githubusercontent.com/.../data/*.json 을 읽음
 ```
 
-## 6. 캐시 & 비용
+### 데이터 갱신 (발표일 1·11·21일 이후 실행)
 
-- 월간 통계는 확정 후 불변 → `_cache/`에 영구 캐시, `?refresh=1`로 갱신
-- `/api/trend` 최초 호출은 chapter 01~99 × 12개월이라 다소 느림 (이후 캐시 즉시 응답)
-- 개발계정 트래픽 10,000/일 — 캐시면 충분. 동시성은 `CONCURRENCY`(기본 8)로 조절
-- **페이지네이션 지원** — `totalCount` 기준 전 페이지 수집으로 행 누락 방지
+```bash
+# 사전 1회: .env에 GITHUB_TOKEN 추가 (fine-grained, 이 레포 Contents: R/W만)
+update-data.bat            # Windows 더블클릭
+# 또는
+python scripts/export_static.py --push
+```
 
-## 7. ⚠️ 섹터 매핑은 '근사치'입니다
+자동화: Windows 작업 스케줄러에 `update-data.bat`을 매월 1·11·21일 등록.
 
-산업부 **15대 품목은 MTI 분류**, 이 A
+### 대시보드 데이터 우선순위
+① 같은 출처 API(한국 IP에서 백엔드 실행 시 실시간) → ② GitHub 정적 JSON → ③ 내장 데이터.
+배지로 현재 출처가 표시됩니다(`⚡ API 실시간` / `🗂 GitHub 데이터 · 날짜`).
+
+## 6. 배포 (Railway — 대시보드 호스팅용)
+
+현재 배포:

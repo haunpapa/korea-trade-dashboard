@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     allow_origins: str = "*"  # 콤마 구분 목록
     log_level: str = "INFO"
 
+    # 정적 데이터 업로드 (scripts/export_static.py --push)
+    github_token: str = ""  # fine-grained PAT, Contents: Read/Write
+    github_repo: str = "haunpapa/korea-trade-dashboard"
+    github_branch: str = "main"
+
     @property
     def origins(self) -> list[str]:
         return [o.strip() for o in self.allow_origins.split(",") if o.strip()]
