@@ -1,0 +1,28 @@
+[project]
+name = "korea-trade-dashboard-api"
+version = "2.0.0"
+description = "관세청 무역통계 → 수출입동향 섹터 대시보드 변환 레이어"
+requires-python = ">=3.10"
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "unit: 순수 함수 단위 테스트",
+    "integration: API 통합 테스트(mock transport)",
+]

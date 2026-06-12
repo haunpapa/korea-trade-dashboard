@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한국 수출입동향 · 섹터 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF1F6; --panel:#FFFFFF; --inset:#F3F6FA; --line:#E2E8F1;
+    --ink:#0B1A2B; --ink2:#54637C; --ink3:#92A0B3;
+    --brand:#1B49FF; --brand-soft:#EAEEFF;
+    --pos:#00935C; --pos-bg:#E2F4EC; --pos-strong:#00754A;
+    --neg:#DD3A40; --neg-bg:#FCEBEB;
+    --amber:#C77400; --amber-bg:#FBF0DD;
+    --star:#6A4DF4; --star-bg:#EDE9FE;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+    --r:16px; --r-sm:11px;
+    --sh:0 1px 2px rgba(16,33,64,.04),0 8px 24px rgba(16,33,64,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
+    background:var(--bg); color:var(--ink);
+    line-height:1.5; letter-spacing:-.01em;
+    padding:clamp(14px,3vw,34px);
+    font-feature-settings:"tnum" 1;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+
+  /* ---------- Header ---------- */
+  .head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:6px}
+  .brand-row{display:flex;align-items:center;gap:11px}
+  .glyph{width:38px;height:38px;border-radius:10px;background:var(--brand);position:relative;flex:none;box-shadow:0 4px 12px rgba(27,73,255,.32)}
+  .glyph::before,.glyph::after{content:"";position:absolute;left:8px;width:5px;border-radius:2px;background:#fff;bottom:8px}
+  .glyph::before{height:13px}
+  .glyph::after{left:16px;height:21px;opacity:.9}
+  .glyph i{position:absolute;left:24px;bottom:8px;width:5px;height:17px;border-radius:2px;background:#9FB4FF}
+  h1{font-size:clamp(19px,2.4vw,24px);font-weight:800;letter-spacing:-.03em}
+  .sub{color:var(--ink2);font-size:12.5px;margin-top:2px}
+  .next-pill{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 14px;box-shadow:var(--sh);font-size:12.5px}
+  .next-pill b{font-weight:700}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px var(--brand-soft)}
+
+  /* ---------- Ticker ---------- */
+  .ticker{display:flex;flex-wrap:wrap;gap:7px 22px;background:var(--ink);color:#E8EEF7;border-radius:12px;padding:11px 18px;margin:16px 0 18px;font-size:12.5px;align-items:center}
+  .ticker .t{display:flex;align-items:baseline;gap:7px;white-space:nowrap}
+  .ticker .lab{color:#92A6C4;font-size:11px}
+  .ticker .num{font-family:var(--mono);font-weight:600;font-size:13.5px}
+  .ticker .up{color:#54E0A0} .ticker .down{color:#FF8A8E}
+  .ticker .sep{width:1px;height:14px;background:#26405E}
+
+  /* ---------- Segmented control ---------- */
+  .seg{display:flex;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:var(--sh);margin-bottom:8px;flex-wrap:wrap}
+  .seg button{flex:1 1 150px;min-width:140px;border:1.5px solid transparent;background:transparent;border-radius:10px;padding:9px 12px;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink2);transition:.16s;display:flex;flex-direction:column;gap:1px}
+  .seg button .big{font-size:14px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+  .seg button .small{font-size:11px;color:var(--ink3)}
+  .seg button:hover{background:var(--inset)}
+  .seg button[aria-selected="true"]{background:var(--brand-soft);border-color:var(--brand)}
+  .seg button[aria-selected="true"] .big{color:var(--brand)}
+  .seg button[aria-selected="true"] .small{color:#5C7BFF}
+  .seg button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+  .ctx{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 2px 18px;font-size:12.5px;color:var(--ink2)}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;letter-spacing:.01em}
+  .badge.full{background:var(--brand-soft);color:var(--brand)}
+  .badge.partial{background:var(--amber-bg);color:var(--amber)}
+  .badge.live{background:#E6F7EF;color:#00754A;border:1px solid #9ADBBE}
+  .ctx .src{margin-left:auto;color:var(--ink3)}
+
+  /* ---------- Generic section ---------- */
+  section{margin-bottom:16px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:clamp(16px,2.4vw,24px)}
+  .ph{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:16px}
+  .ph h2{font-size:15px;font-weight:800;letter-spacing:-.02em}
+  .ph .hint{font-size:11.5px;color:var(--ink3)}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.09em;color:var(--brand);text-transform:uppercase;margin-bottom:5px}
+
+  /* ---------- KPI ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:18px}
+  .kpi .k-lab{font-size:12px;color:var(--ink2);font-weight:600;display:flex;align-items:center;gap:6px}
+  .kpi .k-num{font-family:var(--mono);font-size:clamp(26px,3.4vw,33px);font-weight:600;letter-spacing:-.02em;margin-top:9px;line-height:1}
+  .kpi .k-unit{font-size:13px;color:var(--ink3);font-weight:500;margin-left:3px;font-family:inherit}
+  .kpi .k-foot{margin-top:11px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:7px;font-family:var(--mono)}
+  .chip.up{background:var(--pos-bg);color:var(--pos-strong)}
+  .chip.down{background:var(--neg-bg);color:var(--neg)}
+  .chip.flat{background:var(--inset);color:var(--ink2)}
+  .chip .ar{font-family:inherit;font-size:10px}
+  .k-yoy{font-size:11px;color:var(--ink3)}
+  .kpi.surplus{background:linear-gradient(180deg,#F2FBF7,#fff);border-color:#CFE9DC}
+
+  .tip{position:relative;cursor:help;border-bottom:1px dotted var(--ink3)}
+  .tip>span{position:absolute;left:0;bottom:135%;width:210px;background:var(--ink);color:#EAF0F8;font-size:11px;font-weight:500;line-height:1.45;padding:9px 11px;border-radius:9px;opacity:0;pointer-events:none;transform:translateY(4px);transition:.15s;z-index:9;letter-spacing:0;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+  .tip:hover>span{opacity:1;transform:translateY(0)}
+
+  /* ---------- Sector matrix (signature) ---------- */
+  .matrix{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
+  .grp{border:1px solid var(--line);border-radius:14px;padding:15px 16px;background:var(--panel);position:relative;overflow:hidden}
+  .grp.lead{grid-column:1/-1}
+  .grp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:7px}
+  .grp-name{font-size:14.5px;font-weight:800;letter-spacing:-.02em}
+  .grp-meta{font-size:11.5px;color:var(--ink2);margin-top:1px}
+  .grp-val{text-align:right;flex:none}
+  .grp-val .v{font-family:var(--mono);font-size:17px;font-weight:600}
+  .grp-val .u{font-size:10.5px;color:var(--ink3)}
+  .valbar{height:5px;border-radius:3px;background:var(--inset);overflow:hidden;margin:9px 0 13px}
+  .valbar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#1B49FF,#5C7BFF);transition:width .7s cubic-bezier(.4,0,.1,1)}
+  .grp.other .valbar i{background:#B6C2D4}
+  .items{display:flex;flex-direction:column;gap:8px}
+  .it{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px}
+  .it-name{font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px}
+  .it-bar-wrap{grid-column:1/-1;height:6px;border-radius:4px;background:var(--inset);position:relative;overflow:hidden;margin-top:-3px}
+  .it-bar{position:absolute;left:0;top:0;height:100%;border-radius:4px;transition:width .7s cubic-bezier(.4,0,.1,1)}
+  .it-right{display:flex;align-items:center;gap:8px}
+  .it-val{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+  .star-tag{font-size:9.5px;font-weight:800;color:var(--star);background:var(--star-bg);padding:2px 6px;border-radius:5px;letter-spacing:.02em}
+
+  /* ---------- Diverging momentum chart ---------- */
+  .dv-row{display:grid;grid-template-columns:120px 1fr 64px;align-items:center;gap:12px;padding:5px 0}
+  .dv-name{font-size:12.5px;font-weight:600;text-align:right;color:var(--ink)}
+  .dv-track{position:relative;height:22px;background:linear-gradient(90deg,transparent calc(50% - .5px),var(--line) 50%,transparent calc(50% + .5px))}
+  .dv-fill{position:absolute;top:3px;height:16px;border-radius:5px;transition:width .7s cubic-bezier(.4,0,.1,1),left .7s}
+  .dv-pct{font-family:var(--mono);font-size:12.5px;font-weight:600;text-align:left}
+  .dv-axis{display:grid;grid-template-columns:120px 1fr 64px;gap:12px;margin-top:8px;font-size:10.5px;color:var(--ink3)}
+  .dv-axis .mid{text-align:center}
+
+  /* ---------- Region bars ---------- */
+  .reg{display:flex;flex-direction:column;gap:11px}
+  .reg-row{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px}
+  .reg-name{font-size:13px;font-weight:700}
+  .reg-track{height:9px;border-radius:5px;background:var(--inset);overflow:hidden}
+  .reg-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,#1B49FF,#6E8BFF);transition:width .7s cubic-bezier(.4,0,.1,1)}
+  .reg-right{display:flex;align-items:center;gap:9px;justify-content:flex-end}
+  .reg-val{font-family:var(--mono);font-size:12px;color:var(--ink2);min-width:54px;text-align:right}
+
+  /* ---------- 12-month trend ---------- */
+  .trend-read{font-size:12px;color:var(--ink2);text-align:right;font-variant-numeric:tabular-nums;min-height:18px}
+  .trend-read b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+  .trend-read .up{color:var(--pos)}
+  .trend-read .mo{color:var(--brand);font-weight:700;font-family:var(--mono);margin-right:7px}
+  .trend-chart svg{width:100%;height:auto;display:block}
+  .trend-chart .tr-col{cursor:crosshair}
+  .trend-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:11.5px;color:var(--ink2);align-items:center}
+  .trend-legend .lg{display:flex;align-items:center;gap:6px}
+  .trend-legend i{flex:none}
+  .trend-legend i.ln{width:16px;height:3px;border-radius:2px;background:var(--brand)}
+  .trend-legend i.br{width:9px;height:12px;border-radius:2px;background:var(--pos);opacity:.85}
+  .trend-legend .note{margin-left:auto;color:var(--ink3)}
+  .trend-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:15px}
+  .trend-tabs button{border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 13px;font-family:inherit;font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;transition:.15s}
+  .trend-tabs button:hover{background:var(--inset)}
+  .trend-tabs button[aria-selected="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .trend-tabs button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .trend-tabs .tab-divider{align-self:center;color:var(--ink3);font-size:11px;font-weight:700;padding:0 2px}
+  .trend-tabs button.region-tab{border-style:dashed}
+  .trend-tabs button.region-tab[aria-selected="true"]{border-style:solid}
+  .trend-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:44px 20px;text-align:center;background:var(--inset);border:1px dashed var(--line);border-radius:13px}
+  .trend-empty .te-ic{font-size:25px}
+  .trend-empty .te-t{font-size:13px;font-weight:600;color:var(--ink);max-width:430px;line-height:1.5}
+  .trend-empty .te-d{font-size:12px;color:var(--ink2)}
+  .trend-empty .te-d b{font-family:var(--mono);color:var(--ink)}
+
+  /* est markers in matrix */
+  .est-tag{font-size:9px;font-weight:800;color:var(--amber);background:var(--amber-bg);padding:1px 5px;border-radius:4px;margin-left:5px;letter-spacing:.02em}
+  .it-bar-est{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.5) 0 3px,transparent 3px 6px)}
+  .matrix-foot{font-size:11px;color:var(--ink3);line-height:1.55;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+  .matrix-foot b{font-weight:700}
+
+  /* ---------- Two-col ---------- */
+  .cols{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+
+  /* ---------- Import structure / gauge ---------- */
+  .imp{display:flex;flex-direction:column;gap:14px}
+  .imp-bar{display:flex;height:46px;border-radius:11px;overflow:hidden;border:1px solid var(--line)}
+  .imp-seg{display:flex;flex-direction:column;justify-content:center;padding:0 14px;color:#fff}
+  .imp-seg .l{font-size:11px;opacity:.92;font-weight:600}
+  .imp-seg .v{font-family:var(--mono);font-size:14px;font-weight:600}
+  .imp-seg.e{background:linear-gradient(120deg,#13233A,#33506F)}
+  .imp-seg.n{background:linear-gradient(120deg,#1B49FF,#4F73FF)}
+  .imp-note{font-size:12px;color:var(--ink2);display:flex;gap:7px;align-items:flex-start}
+
+  .gauge-wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .gauge{--p:0;width:128px;height:128px;border-radius:50%;flex:none;
+    background:conic-gradient(var(--star) calc(var(--p)*1%),var(--inset) 0);
+    display:grid;place-items:center;position:relative}
+  .gauge::after{content:"";position:absolute;inset:13px;background:var(--panel);border-radius:50%}
+  .gauge .g-in{position:relative;text-align:center;z-index:1}
+  .gauge .g-p{font-family:var(--mono);font-size:24px;font-weight:600;color:var(--star)}
+  .gauge .g-l{font-size:10px;color:var(--ink3);margin-top:1px}
+  .gauge-txt b{font-size:14px}
+  .gauge-txt{font-size:12.5px;color:var(--ink2);max-width:240px}
+
+  .callout{display:flex;gap:12px;align-items:flex-start;background:var(--inset);border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+  .callout .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;font-size:15px}
+  .callout.amber .ic{background:var(--amber-bg)} .callout.amber{border-color:#F0DCB8}
+  .callout.surplus .ic{background:var(--pos-bg)} .callout.surplus{border-color:#CFE9DC;background:#F2FBF7}
+  .callout.info .ic{background:var(--brand-soft)}
+  .callout .c-t{font-size:13px;font-weight:700;margin-bottom:2px}
+  .callout .c-d{font-size:12px;color:var(--ink2);line-height:1.5}
+  .callout .c-d b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+
+  .workdays{display:flex;gap:14px;align-items:center}
+  .wd-box{text-align:center;background:var(--inset);border:1px solid var(--line);border-radius:11px;padding:11px 16px}
+  .wd-box .n{font-family:var(--mono);font-size:20px;font-weight:600}
+  .wd-box .l{font-size:10.5px;color:var(--ink3)}
+  .wd-arrow{color:var(--pos);font-weight:700;font-family:var(--mono)}
+
+  /* ---------- Update guide ---------- */
+  .guide{background:linear-gradient(160deg,#0E1B2E,#16263E);color:#D7E0EC;border-radius:var(--r);padding:clamp(18px,2.6vw,26px)}
+  .guide h2{color:#fff;font-size:15px;font-weight:800;margin-bottom:4px}
+  .guide .g-sub{font-size:12.5px;color:#9FB1C9;margin-bottom:18px}
+  .cal{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:20px}
+  .cal-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:14px}
+  .cal-day{font-family:var(--mono);font-size:20px;font-weight:600;color:#7E9BFF}
+  .cal-t{font-size:13px;font-weight:700;color:#fff;margin:3px 0 4px}
+  .cal-d{font-size:11.5px;color:#9FB1C9;line-height:1.45}
+  .steps{display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
+  .step{display:flex;gap:11px;font-size:12.5px;color:#C5D2E2;align-items:flex-start}
+  .step .n{font-family:var(--mono);font-size:11px;font-weight:600;color:#0E1B2E;background:#7E9BFF;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;flex:none}
+  .step code{font-family:var(--mono);font-size:11.5px;background:rgba(126,155,255,.16);color:#BBD0FF;padding:1px 6px;border-radius:5px}
+  .api-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:15px 16px}
+  .api-box .a-t{font-size:12.5px;font-weight:700;color:#fff;margin-bottom:7px;display:flex;align-items:center;gap:7px}
+  .api-box .a-d{font-size:12px;color:#A9B8CD;line-height:1.55}
+  .api-box a{color:#9FB7FF;text-decoration:none;border-bottom:1px solid rgba(159,183,255,.4)}
+  .api-box code{font-family:var(--mono);font-size:11.5px;color:#BBD0FF}
+
+  footer{text-align:center;font-size:11.5px;color:var(--ink3);margin-top:24px;line-height:1.7}
+  footer b{color:var(--ink2);font-weight:600}
+
+  /* ---------- Responsive ---------- */
+  @media(max-width:860px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .matrix{grid-template-columns:1fr}
+    .grp.lead{grid-column:auto}
+    .cols{grid-template-columns:1fr}
+    .cal{grid-template-columns:1fr}
+    .dv-row,.dv-axis{grid-template-columns:90px 1fr 56px;gap:9px}
+    .dv-name{font-size:11.5px}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <div class="brand-row">
+      <div class="glyph"><i></i></div>
+      <div>
+        <h1>한국 수출입동향 · 섹터 대시보드</h1>
+        <div class="sub">산업분야별 수출 구조와 모멘텀을 발표 회차별로 추적</div>
+      </div>
+    </div>
+    <div class="next-pill"><span class="dot"></span><span>다음 발표 <b id="nextRel">6월 1~20일 (6/21·관세청)</b></span></div>
+  </header>
+
+  <div class="ticker" id="ticker"></div>
+
+  <div class="seg" id="seg" role="tablist" aria-label="발표 회차 선택"></div>
+
+  <div class="ctx" id="ctx"></div>
+
+  <!-- KPI -->
+  <section>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <!-- 12-month trend -->
+  <section class="panel" id="sec-trend">
+    <div class="ph">
+      <div>
+        <div class="eyebrow">Trend · 최근 12개월</div>
+        <h2>산업분야별 월별 수출 흐름</h2>
+      </div>
+      <div class="trend-read" id="trendRead"></div>
+    </div>
+    <div class="trend-tabs" id="trendTabs" role="tablist" aria-label="산업분야 선택"></div>
+    <div class="trend-chart" id="trendChart"></div>
+    <div class="trend-legend">
+      <span class="lg"><i class="ln"></i>수출</span>
+      <span class="lg" id="lgBal"><i class="br"></i>무역수지</span>
+      <span class="lg note">월간 기준 · 발표 회차와 무관 (단위: 억 달러)</span>
+    </div>
+  </section>
+
+  <!-- Sector matrix -->
+  <section id="sec-matrix" class="panel">
+    <div class="ph">
+      <div>
+        <div class="eyebrow">Signature · 섹터 모멘텀</div>
+        <h2>산업분야별 수출 구조</h2>
+      </div>
+      <div class="hint">막대 길이 = 수출액 규모 · 색 = 전년대비 증감(<span style="color:var(--pos)">증가</span>/<span style="color:var(--neg)">감소</span>)</div>
+    </div>
+    <div class="matrix" id="matrix"></div>
+  </section>
+
+  <div class="cols">
+    <!-- Momentum ranking -->
+    <section id="sec-momentum" class="panel" style="margin-bottom:0">
+      <div class="ph"><div><h2>품목별 모멘텀 (전년동기비)</h2></div><div class="hint">↔ 0% 기준</div></div>
+      <div id="momentum"></div>
+    </section>
+    <!-- Region -->
+    <section id="sec-region" class="panel" style="margin-bottom:0">
+      <div class="ph"><div><h2>주요 지역별 수출</h2></div></div>
+      <div class="reg" id="region"></div>
+    </section>
+  </div>
+
+  <div class="cols" style="margin-top:16px">
+    <!-- Import structure -->
+    <section id="sec-import" class="panel" style="margin-bottom:0">
+      <div class="ph"><div><h2>수입 구조</h2></div><div class="hint">에너지 vs 비에너지</div></div>
+      <div class="imp" id="import"></div>
+    </section>
+    <!-- Highlight / partial info -->
+    <section id="sec-side" class="panel" style="margin-bottom:0">
+      <div class="ph"><div><h2 id="side-h">핵심 포인트</h2></div></div>
+      <div id="side"></div>
+    </section>
+  </div>
+
+  <!-- Update guide -->
+  <section class="guide" style="margin-top:16px">
+    <h2>발표 주기 &amp; 데이터 업데이트</h2>
+    <div class="g-sub">수출입 실적은 한 달에 세 번, 1·11·21일에 단계적으로 공개됩니다.</div>
+    <div class="cal">
+      <div class="cal-card"><div class="cal-day">11일</div><div class="cal-t">1~10일 순별 속보</div><div class="cal-d">관세청 · 총괄과 반도체 등 주요 품목 중심의 '첫 읽기'. 조업일수 영향이 큼.</div></div>
+      <div class="cal-card"><div class="cal-day">21일</div><div class="cal-t">1~20일 순별 속보</div><div class="cal-d">관세청 · 누계 잠정치. 품목·지역 증감률이 더 채워짐.</div></div>
+      <div class="cal-card"><div class="cal-day">1일</div><div class="cal-t">전월 월간 동향</div><div class="cal-d">산업부 · 15대+ 품목과 9대 지역까지 가장 상세한 확정 그림.</div></div>
+    </div>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><div>HTML 파일을 열어 상단 <code>const DATA</code> 객체에서 해당 회차(<code>monthly</code>/<code>twentyday</code>/<code>tenday</code>)의 수치를 새 발표값으로 교체합니다.</div></div>
+      <div class="step"><span class="n">2</span><div>품목은 <code>{name, value, yoy}</code> 형태로 추가·수정하면 막대·차트·KPI가 자동 재계산됩니다. (절대금액이 없으면 <code>value:null</code> → 증감률만 표시)</div></div>
+      <div class="step"><span class="n">3</span><div>저장 후 GitHub Pages 등에 올리면 끝. 별도 빌드·서버 불필요한 단일 파일입니다.</div></div>
+    </div>
+    <div class="api-box">
+      <div class="a-t">⚙️ 자동화하려면 — 관세청 Open API</div>
+      <div class="a-d">공공데이터포털 <a href="https://www.data.go.kr/data/15101633/openapi.do" target="_blank" rel="noopener">관세청 수출입실적/품목별 무역통계 API</a>를 FastAPI(예: Railway)에서 호출해 위 <code>DATA</code>와 동일한 JSON 스키마로 가공 → 정적 HTML이 <code>fetch()</code>로 읽도록 하면, 발표일마다 손대지 않고 갱신됩니다. 브라우저 직접 호출은 CORS·인증키 때문에 막히므로 백엔드 경유가 정석입니다.</div>
+    </div>
+  </section>
+
+  <footer>
+    <span id="src-line"></span><br>
+    출처 · <b>산업통상자원부</b> 월간 수출입동향, <b>관세청</b> 순별 수출입현황(잠정치). 순별 통계는 단기 지표로 조업일수 등에 따라 변동될 수 있습니다.
+  </footer>
+
+</div>
+
+<script>
+/* =====================================================================
+   DATA  —  발표일마다 이 객체만 교체하면 대시보드 전체가 재계산됩니다.
+   value: 억 달러 / yoy: 전년동기비 % (없으면 null)
+   ===================================================================== */
+const DATA = {
+  monthly: {
+    tab:'월간 동향', tabDay:'1일 발표 · 산업부', granularity:'full',
+    period:'2026년 5월 (1~31일)', status:'월간 잠정', src:'산업통상자원부', date:'2026.06.01',
+    totals:{ exports:877.5, exportsYoY:53.2, imports:608.0, importsYoY:20.8,
+             balance:269.5, dailyAvg:42.8, dailyAvgYoY:60.7 },
+    highlight:{ ytd:1019.1, note:'1~5월 누적 흑자. 2017년 연간 최대(952억)를 5개월 만에 조기 경신한 사상 최대치.' },
+    groups:[
+      { name:'IT·반도체', items:[
+        {name:'반도체',value:371.6,yoy:169.4,star:true},
+        {name:'컴퓨터(SSD)',value:41.8,yoy:290.7},
+        {name:'디스플레이',value:14.7,yoy:9.4},
+        {name:'무선통신기기',value:14.6,yoy:12.6},
+      ]},
+      { name:'모빌리티', items:[
+        {name:'자동차',value:58.3,yoy:-5.9},
+        {name:'선박',value:26.1,yoy:16.7},
+        {name:'자동차부품',value:16.0,yoy:-12.0,est:true},
+        {name:'이차전지',value:6.0,yoy:-5.0,est:true},
+      ]},
+      { name:'에너지·화학', items:[
+        {name:'석유제품',value:52.5,yoy:46.6},
+        {name:'석유화학',value:37.0,yoy:11.1},
+      ]},
+      { name:'소재·기계', items:[
+        {name:'일반기계',value:38.2,yoy:-6.3},
+        {name:'철강',value:20.4,yoy:-2.1},
+        {name:'비철금속',value:16.7,yoy:41.5},
+      ]},
+      { name:'소비재·바이오', items:[
+        {name:'바이오헬스',value:14.4,yoy:5.2},
+        {name:'화장품',value:11.8,yoy:24.2},
+        {name:'농수산식품',value:10.7,yoy:4.7},
+        {name:'가전',value:6.0,yoy:-6.0,est:true},
+        {name:'섬유',value:9.0,yoy:4.0,est:true},
+      ]},
+    ],
+    regions:[
+      {name:'중국',value:189.0,yoy:80.9},
+      {name:'미국',value:159.7,yoy:59.1},
+      {name:'아세안',value:158.5,yoy:58.4},
+      {name:'EU',value:61.9,yoy:2.4},
+      {name:'중동',value:12.7,yoy:-7.7},
+    ],
+    imports:{ energy:117.5, energyYoY:15.9, crude:84.7, crudeYoY:25.0, nonEnergy:490.5, nonEnergyYoY:22.0 },
+  },
+
+  twentyday: {
+    tab:'1~20일 속보', tabDay:'21일 발표 · 관세청', granularity:'partial',
+    period:'2026년 5월 1~20일', status:'순별 잠정', src:'관세청', date:'2026.05.21',
+    totals:{ exports:526.5, exportsYoY:64.8, imports:416.5, importsYoY:null,
+             balance:110.0, dailyAvg:null, dailyAvgYoY:null },
+    semiShare:{ value:41.7, label:'반도체 수출 비중', note:'전체 수출의 41.7% (전년동기비 +19.0%p). 반도체 한 품목이 한국 수출 흐름을 좌우.' },
+    items:[
+      {name:'반도체',value:219.5,yoy:202.1,star:true},
+      {name:'컴퓨터주변기기',value:null,yoy:305.5},
+      {name:'석유제품',value:null,yoy:46.3},
+      {name:'승용차',value:null,yoy:-10.1},
+      {name:'가전제품',value:null,yoy:-6.3},
+    ],
+    regions:[
+      {name:'대만',value:null,yoy:110.4},
+      {name:'중국',value:null,yoy:96.5},
+      {name:'미국',value:null,yoy:79.3},
+      {name:'베트남',value:null,yoy:70.2},
+      {name:'EU',value:null,yoy:21.7},
+    ],
+    note:'1~20일 누계 잠정치. 절대금액은 총괄·반도체 위주로 공개되어, 그 외 품목·지역은 증감률 중심으로 표시됩니다.',
+  },
+
+  tenday: {
+    tab:'1~10일 속보', tabDay:'11일 발표 · 관세청', granularity:'partial',
+    period:'2026년 6월 1~10일', status:'순별 잠정 · 최신', src:'관세청', date:'2026.06.11',
+    totals:{ exports:286.4, exportsYoY:85.9, imports:233.5, importsYoY:35.6,
+             balance:52.8, dailyAvg:null, dailyAvgYoY:46.1 },
+    workdays:{ now:7.0, prev:5.5 },
+    items:[
+      {name:'반도체',value:111.0,valuePrefix:'≈',yoy:null,star:true,tag:'역대 최대'},
+    ],
+    regions:[],
+    note:'가장 최근(6/11) 공개된 6월 초 10일 실적. 단기 통계라 조업일수(7.0일, 전년 5.5일) 증가 영향이 크며, 품목별 상세는 21일·월말 발표에서 채워집니다.',
+  },
+};
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const fmt=n=>n==null?'–':n.toLocaleString('ko-KR',{minimumFractionDigits:0,maximumFractionDigits:1});
+const sign=n=>n==null?'':(n>=0?'+':'')+n.toFixed(1);
+function momColor(y){
+  if(y==null) return {bg:'#B6C2D4',fg:'var(--ink2)'};
+  if(y>=50)  return {bg:'#00754A',fg:'var(--pos-strong)'};
+  if(y>=15)  return {bg:'#1AA06A',fg:'var(--pos)'};
+  if(y>=0)   return {bg:'#86D2AE',fg:'var(--pos)'};
+  if(y>-10)  return {bg:'#F2A8AB',fg:'var(--neg)'};
+  return {bg:'#DD3A40',fg:'var(--neg)'};
+}
+function chip(y){
+  if(y==null) return '<span class="chip flat">n/a</span>';
+  const up=y>=0;
+  return `<span class="chip ${up?'up':'down'}"><span class="ar">${up?'▲':'▼'}</span>${Math.abs(y).toFixed(1)}%</span>`;
+}
+
+let active='monthly';
+let LIVE=false;  // 관세청 API 연동 성공 여부 (hydrate에서 설정)
+
+/* ---------- segmented control ---------- */
+function buildSeg(){
+  const seg=$('#seg'); seg.innerHTML='';
+  ['monthly','twentyday','tenday'].forEach(k=>{
+    const d=DATA[k];
+    const b=el('button',null,`<span class="big">${d.tab}</span><span class="small">${d.tabDay}</span>`);
+    b.setAttribute('role','tab');
+    b.setAttribute('aria-selected',k===active);
+    b.onclick=()=>{active=k;render();
+      [...seg.children].forEach((c,i)=>c.setAttribute('aria-selected',['monthly','twentyday','tenday'][i]===active));
+    };
+    seg.appendChild(b);
+  });
+}
+
+/* ---------- ticker ---------- */
+function buildTicker(){
+  const d=DATA[active], t=d.totals, w=$('#ticker'); w.innerHTML='';
+  const items=[
+    ['수출', fmt(t.exports)+'억$', t.exportsYoY],
+    ['수입', fmt(t.imports)+'억$', t.importsYoY],
+    ['무역수지', (t.balance>=0?'+':'')+fmt(t.balance)+'억$', null, t.balance>=0],
+  ];
+  if(t.dailyAvgYoY!=null) items.push(['일평균', t.dailyAvg!=null?fmt(t.dailyAvg)+'억$':'증감', t.dailyAvgYoY]);
+  items.forEach((it,i)=>{
+    const node=el('div','t');
+    let arrow='';
+    if(it[2]!=null) arrow=` <span class="${it[2]>=0?'up':'down'}">${it[2]>=0?'▲':'▼'}${Math.abs(it[2]).toFixed(1)}%</span>`;
+    node.innerHTML=`<span class="lab">${it[0]}</span><span class="num ${it[3]?'up':''}">${it[1]}</span>${arrow}`;
+    w.appendChild(node);
+    if(i<items.length-1) w.appendChild(el('span','sep'));
+  });
+}
+
+/* ---------- context line ---------- */
+function buildCtx(){
+  const d=DATA[active], c=$('#ctx');
+  const full=d.granularity==='full';
+  c.innerHTML=`<span class="badge ${full?'full':'partial'}">${full?'상세':'요약'}</span>
+    <b style="color:var(--ink);font-weight:700">${d.period}</b>
+    <span>· ${d.status}</span>
+    <span class="src">발표 ${d.date} · ${d.src}</span>
+    ${LIVE?'<span class="badge live">⚡ API 실시간 연동</span>':''}`;
+  $('#src-line').textContent = `현재 화면: ${d.period} · ${d.status} (${d.src}, ${d.date} 발표)`;
+}
+
+/* ---------- KPI ---------- */
+function buildKPI(){
+  const d=DATA[active], t=d.totals, box=$('#kpis'); box.innerHTML='';
+  const surplus=t.balance>=0;
+  const cards=[
+    {lab:'수출', tip:'국내 → 해외로 판매한 금액 (FOB 기준)', num:fmt(t.exports), unit:'억 달러', yoy:t.exportsYoY},
+    {lab:'수입', tip:'해외 → 국내로 들여온 금액 (CIF 기준)', num:fmt(t.imports), unit:'억 달러', yoy:t.importsYoY},
+    {lab:'무역수지', tip:'수출 − 수입. 플러스면 흑자, 마이너스면 적자.', num:(surplus?'+':'')+fmt(t.balance), unit:'억 달러', yoy:null, surplus:true, tone:surplus},
+    {lab:'일평균 수출', tip:'조업일수로 나눈 값. 영업일 수 차이를 보정해 추세를 비교.', num:t.dailyAvg!=null?fmt(t.dailyAvg):'증감', unit:t.dailyAvg!=null?'억 달러':'', yoy:t.dailyAvgYoY},
+  ];
+  cards.forEach(c=>{
+    const k=el('div','kpi'+(c.surplus?' surplus':''));
+    let foot='';
+    if(c.yoy!=null) foot=`${chip(c.yoy)}<span class="k-yoy">전년동기비</span>`;
+    else if(c.tone!=null) foot=`<span class="chip ${c.tone?'up':'down'}">${c.tone?'흑자':'적자'}</span>`;
+    else foot=`<span class="chip flat">집계 미공개</span>`;
+    k.innerHTML=`<div class="k-lab"><span class="tip">${c.lab}<span>${c.tip}</span></span></div>
+      <div class="k-num">${c.num}<span class="k-unit">${c.unit}</span></div>
+      <div class="k-foot">${foot}</div>`;
+    box.appendChild(k);
+  });
+}
+
+/* ---------- Sector matrix (monthly only) ---------- */
+function buildMatrix(){
+  const d=DATA[active];
+  const sec=$('#sec-matrix');
+  if(d.granularity!=='full'){sec.style.display='none';return;}
+  sec.style.display='';
+  const m=$('#matrix'); m.innerHTML='';
+  const oldFoot=document.getElementById('matrixFoot'); if(oldFoot) oldFoot.remove();
+  const total=d.totals.exports;
+  const groups=d.groups.map(g=>({...g, sum:g.items.reduce((a,b)=>a+(b.value||0),0)}));
+  const named=groups.reduce((a,b)=>a+b.sum,0);
+  const other=Math.max(0,total-named);
+  const maxSum=Math.max(...groups.map(g=>g.sum), other);
+  const maxAbsYoY=Math.max(...d.groups.flatMap(g=>g.items.map(i=>Math.abs(i.yoy||0))));
+
+  groups.sort((a,b)=>b.sum-a.sum).forEach((g,gi)=>{
+    const share=(g.sum/total*100);
+    const card=el('div','grp'+(gi===0?' lead':''));
+    let itemsHtml='';
+    g.items.sort((a,b)=>(b.value||0)-(a.value||0)).forEach(it=>{
+      const col=momColor(it.yoy);
+      const w=Math.max(4,Math.abs(it.yoy||0)/maxAbsYoY*100);
+      itemsHtml+=`<div class="it">
+          <div class="it-name">${it.name}${it.star?'<span class="star-tag">최대 동력</span>':''}${it.est?'<span class="est-tag">추정</span>':''}</div>
+          <div class="it-right"><span class="it-val">${it.value!=null?fmt(it.value):'–'}${it.est?'*':''}</span>${chip(it.yoy)}</div>
+          <div class="it-bar-wrap"><div class="it-bar${it.est?' it-bar-est':''}" style="width:${w}%;background-color:${col.bg}"></div></div>
+        </div>`;
+    });
+    card.innerHTML=`<div class="grp-top">
+        <div><div class="grp-name">${g.name}</div><div class="grp-meta">수출 비중 ${share.toFixed(1)}%</div></div>
+        <div class="grp-val"><div class="v">${fmt(g.sum)}</div><div class="u">억 달러</div></div>
+      </div>
+      <div class="valbar"><i style="width:${g.sum/maxSum*100}%"></i></div>
+      <div class="items">${itemsHtml}</div>`;
+    m.appendChild(card);
+  });
+
+  // 기타
+  if(other>2){
+    const card=el('div','grp other');
+    card.innerHTML=`<div class="grp-top">
+        <div><div class="grp-name" style="color:var(--ink2)">기타 품목</div>
+        <div class="grp-meta">전기기기·정밀화학·기타 부품 등</div></div>
+        <div class="grp-val"><div class="v" style="color:var(--ink2)">${fmt(other)}</div><div class="u">억 달러</div></div>
+      </div>
+      <div class="valbar"><i style="width:${other/maxSum*100}%"></i></div>`;
+    m.appendChild(card);
+  }
+  const hasEst=d.groups.some(g=>g.items.some(i=>i.est));
+  if(hasEst){
+    m.insertAdjacentHTML('afterend',
+      `<div class="matrix-foot" id="matrixFoot">* <b style="color:var(--amber)">추정치</b> — 자동차부품·이차전지·가전·섬유는 산업부 텍스트 발표에 절대금액이 공개되지 않아 근사값으로 표기했습니다(섬유는 4월 9.0억 기준). 관세청 API 연동 시 HS코드 실측값으로 자동 대체됩니다.</div>`);
+  }
+}
+
+/* ---------- Momentum diverging chart ---------- */
+function buildMomentum(){
+  const d=DATA[active];
+  const sec=$('#sec-momentum');
+  let items=[];
+  if(d.granularity==='full') items=d.groups.flatMap(g=>g.items);
+  else items=(d.items||[]);
+  items=items.filter(i=>i.yoy!=null);
+  if(items.length<2){sec.style.display='none';return;}
+  sec.style.display='';
+  items=[...items].sort((a,b)=>b.yoy-a.yoy);
+  const maxAbs=Math.max(...items.map(i=>Math.abs(i.yoy)));
+  const wrap=$('#momentum'); wrap.innerHTML='';
+  items.forEach(it=>{
+    const col=momColor(it.yoy);
+    const half=Math.abs(it.yoy)/maxAbs*50;
+    const row=el('div','dv-row');
+    const left = it.yoy>=0 ? '50%' : (50-half)+'%';
+    row.innerHTML=`<div class="dv-name">${it.name}${it.star?' ★':''}</div>
+      <div class="dv-track"><div class="dv-fill" style="left:${left};width:${half}%;background:${col.bg}"></div></div>
+      <div class="dv-pct" style="color:${col.fg}">${sign(it.yoy)}%</div>`;
+    wrap.appendChild(row);
+  });
+  const ax=el('div','dv-axis',`<span></span><span class="mid">← 감소 　 0% 　 증가 →</span><span></span>`);
+  wrap.appendChild(ax);
+}
+
+/* ---------- Region ---------- */
+function buildRegion(){
+  const d=DATA[active], sec=$('#sec-region');
+  const regions=d.regions||[];
+  if(!regions.length){sec.style.display='none';return;}
+  sec.style.display='';
+  const wrap=$('#region'); wrap.innerHTML='';
+  const hasVal=regions.some(r=>r.value!=null);
+  const maxBasis=Math.max(...regions.map(r=>hasVal?(r.value||0):Math.abs(r.yoy||0)));
+  regions.forEach(r=>{
+    const basis=hasVal?(r.value||0):Math.abs(r.yoy||0);
+    const w=Math.max(3,basis/maxBasis*100);
+    const row=el('div','reg-row');
+    row.innerHTML=`<div class="reg-name">${r.name}</div>
+      <div class="reg-track"><div class="reg-fill" style="width:${w}%"></div></div>
+      <div class="reg-right">${r.value!=null?`<span class="reg-val">${fmt(r.value)}억$</span>`:''}${chip(r.yoy)}</div>`;
+    wrap.appendChild(row);
+  });
+}
+
+/* ---------- Import structure (monthly only) ---------- */
+function buildImport(){
+  const d=DATA[active], sec=$('#sec-import');
+  if(!d.imports){sec.style.display='none';return;}
+  sec.style.display='';
+  const im=d.imports, tot=im.energy+im.nonEnergy;
+  const wrap=$('#import'); wrap.innerHTML='';
+  wrap.innerHTML=`
+    <div class="imp-bar">
+      <div class="imp-seg e" style="flex:${im.energy}"><span class="l">에너지</span><span class="v">${fmt(im.energy)}억$</span></div>
+      <div class="imp-seg n" style="flex:${im.nonEnergy}"><span class="l">비에너지</span><span class="v">${fmt(im.nonEnergy)}억$</span></div>
+    </div>
+    <div class="imp-note">에너지 ${chip(im.energyYoY)} · 비에너지 ${chip(im.nonEnergyYoY)} <span style="color:var(--ink3)">(전년동기비)</span></div>
+    <div class="callout info"><div class="ic">🛢️</div><div>
+      <div class="c-t">원유 수입 <b style="font-family:var(--mono)">${fmt(im.crude)}억$</b> ${chip(im.crudeYoY)}</div>
+      <div class="c-d">유가 상승이 수입 증가를 주도. 무역수지 흑자는 수출 증가폭이 이를 앞섰기 때문입니다.</div>
+    </div></div>`;
+}
+
+/* ---------- Side panel (highlight / partial info) ---------- */
+function buildSide(){
+  const d=DATA[active], side=$('#side');
+  side.innerHTML=''; $('#side-h').textContent='핵심 포인트';
+  const parts=[];
+
+  if(d.highlight){
+    parts.push(`<div class="callout surplus"><div class="ic">🏆</div><div>
+      <div class="c-t">누적 무역수지 <b style="font-family:var(--mono)">+${fmt(d.highlight.ytd)}억$</b></div>
+      <div class="c-d">${d.highlight.note}</div></div></div>`);
+  }
+  if(d.semiShare){
+    const p=d.semiShare.value;
+    parts.push(`<div class="gauge-wrap" style="margin-bottom:14px">
+      <div class="gauge" style="--p:${p}"><div class="g-in"><div class="g-p">${p}%</div><div class="g-l">${d.semiShare.label}</div></div></div>
+      <div class="gauge-txt"><b>반도체 쏠림</b><br>${d.semiShare.note}</div></div>`);
+  }
+  const starItem=(d.items||[]).find(i=>i.star && i.value!=null);
+  if(d.granularity==='partial' && !d.semiShare && starItem){
+    parts.push(`<div class="callout info" style="margin-bottom:14px"><div class="ic">💠</div><div>
+      <div class="c-t">${starItem.name} <b style="font-family:var(--mono)">${starItem.valuePrefix||''}${fmt(starItem.value)}억$</b>${starItem.tag?` · ${starItem.tag}`:''}</div>
+      <div class="c-d">반도체가 이번 속보의 핵심 동력으로, 6월 초 수출 급증을 견인했습니다.</div></div></div>`);
+  }
+  if(d.workdays){
+    parts.push(`<div class="callout amber" style="margin-bottom:14px"><div class="ic">📅</div><div>
+      <div class="c-t">조업일수 보정 필요</div>
+      <div class="c-d">이번 기간 영업일이 늘어 증가율이 부풀려 보일 수 있습니다.</div>
+      <div class="workdays" style="margin-top:10px">
+        <div class="wd-box"><div class="n">${d.workdays.prev}</div><div class="l">전년 일수</div></div>
+        <span class="wd-arrow">→</span>
+        <div class="wd-box"><div class="n">${d.workdays.now}</div><div class="l">올해 일수</div></div>
+      </div></div></div>`);
+  }
+  if(d.granularity==='partial' && d.note){
+    parts.push(`<div class="callout amber"><div class="ic">ⓘ</div><div>
+      <div class="c-t">순별 잠정치 읽는 법</div>
+      <div class="c-d">${d.note}</div></div></div>`);
+  }
+  side.innerHTML=parts.join('');
+}
+
+/* ---------- balance two-col rows when only one panel is visible ---------- */
+function balanceCols(){
+  document.querySelectorAll('.cols').forEach(c=>{
+    const vis=[...c.children].filter(ch=>ch.style.display!=='none');
+    c.style.gridTemplateColumns = vis.length<=1 ? '1fr' : '';
+  });
+}
+
+/* ---------- render all ---------- */
+function render(){
+  buildTicker(); buildCtx(); buildKPI();
+  buildMatrix(); buildMomentum(); buildRegion(); buildImport(); buildSide();
+  balanceCols();
+}
+/* =====================================================================
+   12개월 추세 데이터 (월간 기준, 억 달러) — 발표 시 가장 오래된 달을 빼고
+   최신 달을 추가하세요. exp=수출, bal=무역수지.
+   ===================================================================== */
+let TREND=[
+  {m:'25.06',exp:598.3,bal:90.2},
+  {m:'25.07',exp:607.3,bal:65.4},
+  {m:'25.08',exp:582.7,bal:64.2},
+  {m:'25.09',exp:659.1,bal:95.0},
+  {m:'25.10',exp:595.2,bal:60.2},
+  {m:'25.11',exp:607.7,bal:94.9},
+  {m:'25.12',exp:695.4,bal:121.7},
+  {m:'26.01',exp:658.5,bal:87.4},
+  {m:'26.02',exp:674.5,bal:155.1},
+  {m:'26.03',exp:861.3,bal:257.4},
+  {m:'26.04',exp:859.0,bal:237.7},
+  {m:'26.05',exp:877.5,bal:269.5},
+];
+
+// 산업분야별 월별 수출 시계열 (억 달러). 키 = 섹터 그룹명.
+// IT·반도체 = ICT 공식 수출(2025.06~2026.04) + 2026.05 핵심 IT품목 합계(추정).
+// 나머지 부문은 월별 절대치 공개분이 없어 → API 연동 시 자동 산출(아래 hydrate).
+let SECTOR_TREND = {
+  "IT·반도체":[220.0,221.7,228.5,253.9,232.9,254.4,300.0,290.5,336.2,435.1,427.1,442.7],
+};
+const TREND_TABS=["전체","IT·반도체","모빌리티","에너지·화학","소재·기계","소비재·바이오"];
+// 권역별 추이 — API 연동 시 탭이 나타나고, 클릭 시 /api/region-trend에서 지연 로드됩니다.
+let REGION_TREND = {};
+const REGION_TABS=["중국","미국","아세안","EU","일본","대만","홍콩","인도","중동"];
+let activeTrend="전체";
+function trendSeries(sec){
+  if(sec==="전체") return TREND.map(d=>d.exp);
+  return SECTOR_TREND[sec] || REGION_TREND[sec] || null;
+}
+
+function trendReadout(i){
+  if(activeTrend==="전체"){
+    const d=TREND[i];
+    $('#trendRead').innerHTML=`<span class="mo">${d.m}</span>수출 <b>${fmt(d.exp)}</b>억$ · 무역수지 <b class="up">+${fmt(d.bal)}</b>억$`;
+  }else{
+    const s=trendSeries(activeTrend);
+    if(s) $('#trendRead').innerHTML=`<span class="mo">${TREND[i].m}</span>${activeTrend} 수출 <b>${fmt(s[i])}</b>억$`;
+  }
+}
+async function loadRegionTrend(name){
+  if(REGION_TREND[name] || API_BASE===null) return;
+  try{
+    const r=await fetch(API_BASE+"/api/region-trend?region="+encodeURIComponent(name)+"&months=12").then(x=>x.json());
+    if(Array.isArray(r)&&r.length) REGION_TREND[name]=r.map(x=>x&&x.exp!=null?x.exp:null);
+  }catch(e){ console.warn("권역 추이 로드 실패:",name,e); }
+}
+function buildTrendTabs(){
+  const box=$('#trendTabs'); box.innerHTML='';
+  const mk=(name,cls)=>{
+    const b=el('button',cls,name); b.setAttribute('role','tab');
+    b.setAttribute('aria-selected',name===activeTrend);
+    b.onclick=async()=>{
+      activeTrend=name;
+      if(REGION_TABS.includes(name)) await loadRegionTrend(name);
+      buildTrend();
+      [...box.querySelectorAll('button')].forEach(c=>c.setAttribute('aria-selected',c.textContent===activeTrend));
+    };
+    box.appendChild(b);
+  };
+  TREND_TABS.forEach(n=>mk(n,null));
+  if(LIVE){
+    box.appendChild(el('span','tab-divider','권역'));
+    REGION_TABS.forEach(n=>mk(n,'region-tab'));
+  }
+}
+function buildTrend(){
+  const sec=activeTrend, showBars=sec==="전체", series=trendSeries(sec);
+  const host=$('#trendChart'), balLg=$('#lgBal');
+  if(balLg) balLg.style.display=showBars?'':'none';
+
+  if(!series){
+    const isRegion=REGION_TABS.includes(sec);
+    let cur=null;
+    if(isRegion){
+      const r=(DATA.monthly.regions||[]).find(x=>x.name===sec); cur=r?r.value:null;
+    }else{
+      const g=DATA.monthly.groups.find(x=>x.name===sec);
+      cur=g?g.items.reduce((a,b)=>a+(b.value||0),0):null;
+    }
+    host.innerHTML=`<div class="trend-empty"><div class="te-ic">📡</div>
+      <div class="te-t">${sec} ${isRegion?'권역':'부문'}의 12개월 월별 추이는 <b style="color:var(--brand)">관세청 API 연동 시</b> 자동 표시됩니다</div>
+      <div class="te-d">HS코드 기준 자동 산출 · 최근 월 수출 <b>${cur!=null?fmt(cur):'–'}</b>억 달러</div></div>`;
+    $('#trendRead').innerHTML=`<span class="mo">${sec}</span> 월별 시계열 — API 연동 필요`;
+    return;
+  }
+
+  const T=TREND, n=T.length, W=720, H=284, padL=16, padR=16;
+  const exTop=24, exBot=showBars?150:232, baseY=showBars?250:248, balTop=172, labY=270;
+  const lo=Math.min(...series)*0.94, hi=Math.max(...series)*1.04;
+  const balHi=Math.max(...T.map(d=>d.bal))*1.12;
+  const step=(W-padL-padR)/(n-1);
+  const X=i=>padL+step*i, EY=v=>exBot-(v-lo)/(hi-lo)*(exBot-exTop), BH=v=>v/balHi*(baseY-balTop);
+
+  const line=series.map((v,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+EY(v).toFixed(1)).join(' ');
+  const area=`M${X(0).toFixed(1)} ${baseY} `+series.map((v,i)=>'L'+X(i).toFixed(1)+' '+EY(v).toFixed(1)).join(' ')+` L${X(n-1).toFixed(1)} ${baseY} Z`;
+  let bars='',dots='',cols='',xlabs='';
+  series.forEach((v,i)=>{
+    const x=X(i), y=EY(v), last=i===n-1;
+    if(showBars){const bw=Math.min(24,step*0.52),bx=x-bw/2,bh=BH(T[i].bal),by=baseY-bh;
+      bars+=`<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,bh).toFixed(1)}" rx="3" fill="var(--pos)" opacity="${last?0.95:0.48}"/>`;}
+    dots+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${last?4.5:2.8}" fill="${last?'var(--brand)':'#fff'}" stroke="var(--brand)" stroke-width="2"/>`;
+    if(i%2===0||last) xlabs+=`<text x="${x.toFixed(1)}" y="${labY}" text-anchor="middle" font-size="10" fill="var(--ink3)" style="font-family:var(--mono)">${T[i].m}</text>`;
+    cols+=`<rect x="${(x-step/2).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}" fill="transparent" class="tr-col" data-i="${i}"/>`;
+  });
+  const baseLine=showBars?`<line x1="${padL}" y1="${baseY}" x2="${W-padR}" y2="${baseY}" stroke="var(--line)"/>`:'';
+  const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${sec} 최근 12개월 수출 추이">
+    <defs><linearGradient id="exg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1B49FF" stop-opacity="0.15"/><stop offset="1" stop-color="#1B49FF" stop-opacity="0"/></linearGradient></defs>
+    ${baseLine}
+    <line id="trGuide" x1="0" y1="${exTop-4}" x2="0" y2="${baseY}" stroke="var(--brand)" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
+    <path d="${area}" fill="url(#exg)"/>
+    <path d="M${line.slice(1)}" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${bars}${dots}${xlabs}${cols}
+  </svg>`;
+  host.innerHTML=svg;
+  trendReadout(n-1);
+  const guide=host.querySelector('#trGuide');
+  host.querySelectorAll('.tr-col').forEach(c=>{
+    c.addEventListener('mouseenter',()=>{const i=+c.dataset.i;trendReadout(i);guide.setAttribute('x1',X(i));guide.setAttribute('x2',X(i));guide.setAttribute('opacity','.5');});
+  });
+  host.addEventListener('mouseleave',()=>{guide.setAttribute('opacity','0');trendReadout(n-1);});
+}
+
+/* =====================================================================
+   (옵션) 실데이터 자동 연동 — 아래에 FastAPI 변환 레이어 URL을 넣으면
+   /api/monthly, /api/trend 응답으로 내장 데이터를 덮어씁니다. 비우면 내장값 사용.
+   ===================================================================== */
+/* API_BASE_OVERRIDE: 별도 백엔드 주소가 있으면 입력. 예: "https://your-app.up.railway.app"
+   비워두면 — http(s)로 서빙될 때(예: uvicorn이 이 파일을 / 에서 서빙) 같은 출처를 자동 사용,
+   file:// 로 직접 열면 내장 데이터만 사용합니다. */
+const API_BASE_OVERRIDE = "";
+const API_BASE = API_BASE_OVERRIDE || (location.protocol.startsWith("http") ? "" : null);
+async function hydrate(){
+  if(API_BASE===null) return;
+  $('#trendRead').innerHTML='<span class="mo">API</span> 관세청 데이터 연동 중…';
+  try{
+    const groups=["IT·반도체","모빌리티","에너지·화학","소재·기계","소비재·바이오"];
+    const [m,t,...secs]=await Promise.all([
+      fetch(API_BASE+"/api/monthly").then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}),
+      fetch(API_BASE+"/api/trend?months=12").then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}),
+      ...groups.map(g=>fetch(API_BASE+"/api/sector-trend?group="+encodeURIComponent(g)+"&months=12")
+        .then(r=>r.json()).then(d=>({g,d})).catch(()=>null)),
+    ]);
+    if(m&&m.totals) DATA.monthly={...DATA.monthly,...m};
+    if(Array.isArray(t)&&t.length) TREND=t;
+    secs.forEach(r=>{ if(r&&Array.isArray(r.d)&&r.d.length) SECTOR_TREND[r.g]=r.d.map(x=>x&&x.exp!=null?x.exp:x); });
+    LIVE=true;
+    buildTrendTabs(); render(); buildTrend();
+  }catch(e){
+    console.warn("API 연동 실패 — 내장 데이터를 사용합니다.",e);
+    buildTrend();  // '연동 중' 표시 원복
+  }
+}
+
+/* init */
+buildSeg(); render(); buildTrendTabs(); buildTrend(); hydrate();
+</script>
+</body>
+</html>

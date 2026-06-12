@@ -1,0 +1,14 @@
+# 비밀키 — 절대 커밋 금지
+.env
+
+# 캐시·빌드 산출물
+_cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# GitHub token (로컬 푸시용 임시 파일)
+.gh_token
