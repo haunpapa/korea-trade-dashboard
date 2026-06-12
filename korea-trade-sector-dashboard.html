@@ -897,8 +897,8 @@ function buildTrend(){
    ① API_BASE (같은 출처 또는 API_BASE_OVERRIDE) — 한국 IP에서 백엔드 실행 시 실시간
    ② STATIC_DATA_BASE — 로컬 PC에서 update-data.bat로 올린 GitHub 정적 JSON
    ③ 둘 다 실패 시 내장 데이터
-   ※ data.go.kr은 해외 IP를 차단하므로 해외 호스팅(Railway 등)에서는 ②가 사용됩니다. */
-const API_BASE_OVERRIDE = "";
+   ※ Railway에서도 관세청 API 호출 가능 확인(2026-06). 호출 한도(429) 초과 시 ②로 자동 폴백됩니다. */
+const API_BASE_OVERRIDE = "https://web-production-fe3b5.up.railway.app";  // Railway 실시간 API (실패 시 정적 폴백)
 const STATIC_DATA_BASE = "https://raw.githubusercontent.com/haunpapa/korea-trade-dashboard/main/data";
 const API_BASE = API_BASE_OVERRIDE || (location.protocol.startsWith("http") ? "" : null);
 let DATA_SOURCE = null;  // 'api' | 'static' | null
