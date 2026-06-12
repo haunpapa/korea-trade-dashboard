@@ -39,7 +39,7 @@ logger = logging.getLogger("export_static")
 
 DATA_FILES = (
     "monthly.json", "trend.json", "sector-trend.json", "region-trend.json",
-    "item-trend.json", "meta.json",
+    "item-trend.json", "item-countries.json", "meta.json",
 )
 
 
@@ -60,6 +60,7 @@ async def collect(client: CustomsClient, end_yymm: str, months: int) -> dict[str
         r: await aggregate.build_region_trend(client, r, end_yymm, months) for r in REGION_NAMES
     }
     item_trend = await aggregate.build_item_trends(client, end_yymm, months)
+    item_countries = await aggregate.build_item_countries(client, end_yymm)
     meta = {
         "generated_at": dt.datetime.now().isoformat(timespec="seconds"),
         "end_yymm": end_yymm,
@@ -72,6 +73,7 @@ async def collect(client: CustomsClient, end_yymm: str, months: int) -> dict[str
         "sector-trend.json": sector_trend,
         "region-trend.json": region_trend,
         "item-trend.json": item_trend,
+        "item-countries.json": item_countries,
         "meta.json": meta,
     }
 

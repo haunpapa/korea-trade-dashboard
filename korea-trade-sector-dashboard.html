@@ -86,6 +86,14 @@
   .m-stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--ink2)}
   .m-stats b{font-family:var(--mono);color:var(--ink)}
   .m-empty{padding:46px 16px;text-align:center;color:var(--ink2);font-size:13px;background:var(--inset);border:1px dashed var(--line);border-radius:12px;line-height:1.6}
+  .m-countries{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+  .m-countries .mc-t{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--brand);text-transform:uppercase;margin-bottom:8px}
+  .mc-row{display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:10px;padding:3px 0}
+  .mc-name{font-size:12.5px;font-weight:600}
+  .mc-track{height:7px;border-radius:4px;background:var(--inset);overflow:hidden}
+  .mc-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#1B49FF,#6E8BFF)}
+  .mc-val{font-family:var(--mono);font-size:11.5px;color:var(--ink2);white-space:nowrap}
+  .mc-val b{color:var(--ink);font-weight:600}
   .ctx .src{margin-left:auto;color:var(--ink3)}
 
   /* ---------- Generic section ---------- */
@@ -368,6 +376,7 @@
       </div>
       <div class="modal-chart" id="modalChart"></div>
       <div class="m-stats" id="modalStats"></div>
+      <div class="m-countries" id="modalCountries" style="display:none"></div>
     </div>
   </div>
 
@@ -759,6 +768,7 @@ const TREND_TABS=["전체","IT·반도체","모빌리티","에너지·화학","�
 // 권역별 추이 — API 연동 시 탭이 나타나고, 클릭 시 /api/region-trend에서 지연 로드됩니다.
 let REGION_TREND = {};
 let ITEM_TREND = {};  // 품목별 12개월 시계열 (클릭 모달 차트용)
+let ITEM_COUNTRIES = {};  // 품목별 주요 수출국 TOP5 (모달 분포용)
 const REGION_TABS=["중국","미국","아세안","EU","일본","대만","홍콩","인도","중동"];
 let activeTrend="전체";
 function trendSeries(sec){
@@ -896,18 +906,20 @@ async function hydrateFromApi(){
 }
 
 async function hydrateFromStatic(){
-  const [m,t,st,rt,itr,meta]=await Promise.all([
+  const [m,t,st,rt,itr,itc,meta]=await Promise.all([
     fetchJson(STATIC_DATA_BASE+"/monthly.json"),
     fetchJson(STATIC_DATA_BASE+"/trend.json"),
     fetchJson(STATIC_DATA_BASE+"/sector-trend.json").catch(()=>null),
     fetchJson(STATIC_DATA_BASE+"/region-trend.json").catch(()=>null),
     fetchJson(STATIC_DATA_BASE+"/item-trend.json").catch(()=>null),
+    fetchJson(STATIC_DATA_BASE+"/item-countries.json").catch(()=>null),
     fetchJson(STATIC_DATA_BASE+"/meta.json").catch(()=>null),
   ]);
   applyMonthly(m); applyTrend(t);
   if(st) for(const g in st){ if(Array.isArray(st[g])&&st[g].length) SECTOR_TREND[g]=seriesOf(st[g]); }
   if(rt) for(const r in rt){ if(Array.isArray(rt[r])&&rt[r].length) REGION_TREND[r]=seriesOf(rt[r]); }
   if(itr) for(const k in itr){ if(Array.isArray(itr[k])&&itr[k].length) ITEM_TREND[k]=seriesOf(itr[k]); }
+  if(itc) for(const k in itc){ if(Array.isArray(itc[k])&&itc[k].length) ITEM_COUNTRIES[k]=itc[k]; }
   const when = meta&&meta.generated_at ? ' · '+meta.generated_at.slice(5,10).replace('-','.') : '';
   LIVE_LABEL='🗂 GitHub 데이터'+when;
 }
@@ -918,7 +930,7 @@ function saveLocal(){
   try{
     localStorage.setItem(LS_KEY, JSON.stringify({
       ts:Date.now(), source:DATA_SOURCE, label:LIVE_LABEL,
-      monthly:DATA.monthly, trend:TREND, st:SECTOR_TREND, rt:REGION_TREND, it:ITEM_TREND,
+      monthly:DATA.monthly, trend:TREND, st:SECTOR_TREND, rt:REGION_TREND, it:ITEM_TREND, ic:ITEM_COUNTRIES,
     }));
   }catch(e){ /* 시크릿 모드 등 저장 불가 시 무시 */ }
 }
@@ -931,6 +943,7 @@ function loadLocal(){
     Object.assign(SECTOR_TREND, c.st||{});
     Object.assign(REGION_TREND, c.rt||{});
     Object.assign(ITEM_TREND, c.it||{});
+    Object.assign(ITEM_COUNTRIES, c.ic||{});
     DATA_SOURCE=c.source||'cache'; LIVE=true; LIVE_LABEL=c.label||'저장 데이터';
     return true;
   }catch(e){ return false; }
@@ -999,7 +1012,20 @@ function showModal(name, series, type){
     chart.innerHTML=`<div class="m-empty">📡 ${name}의 월별 추이 데이터가 아직 없습니다.<br>관세청 API 연동 또는 데이터 갱신 후 표시됩니다.</div>`;
     stats.innerHTML='';
   }
+  renderModalCountries(name, type);
   $('#modalBg').hidden=false;
+}
+
+function renderModalCountries(name, type){
+  const box=$('#modalCountries');
+  const list=(type==='item')?ITEM_COUNTRIES[name]:null;
+  if(!list||!list.length){ box.style.display='none'; box.innerHTML=''; return; }
+  const maxShare=Math.max(...list.map(c=>c.share));
+  box.innerHTML='<div class="mc-t">주요 수출국 TOP '+list.length+'</div>'+list.map(c=>
+    `<div class="mc-row"><div class="mc-name">${c.name}</div>
+      <div class="mc-track"><div class="mc-fill" style="width:${Math.max(3,c.share/maxShare*100)}%"></div></div>
+      <div class="mc-val"><b>${fmt(c.value)}</b>억$ · ${c.share.toFixed(1)}%</div></div>`).join('');
+  box.style.display='';
 }
 
 async function openTrendModal(name, type){
@@ -1015,6 +1041,12 @@ async function openTrendModal(name, type){
       if(type==='group') SECTOR_TREND[name]=series; else ITEM_TREND[name]=series;
       if(!$('#modalBg').hidden) showModal(name, series, type);
     }catch(e){ console.warn("추이 로드 실패:", name, e.message||e); }
+  }
+  if(type==='item' && !ITEM_COUNTRIES[name] && DATA_SOURCE==='api'){
+    try{
+      const d=await fetchJson(API_BASE+"/api/item-countries?item="+encodeURIComponent(name));
+      if(Array.isArray(d)&&d.length){ ITEM_COUNTRIES[name]=d; if(!$('#modalBg').hidden) renderModalCountries(name,type); }
+    }catch(e){ console.warn("수출국 분포 로드 실패:", name, e.message||e); }
   }
 }
 

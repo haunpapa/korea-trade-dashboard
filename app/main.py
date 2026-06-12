@@ -170,6 +170,25 @@ async def api_item_trend(
     return trends[item]
 
 
+@app.get("/api/item-countries")
+async def api_item_countries(
+    request: Request,
+    item: str,
+    yymm: str | None = None,
+    top: int = Query(default=5, ge=1, le=20),
+    refresh: int = 0,
+) -> list[dict]:
+    """품목별 주요 수출국 TOP N (모달 분포용)."""
+    if item not in SECTOR_BUCKETS:
+        raise HTTPException(
+            422, f"item은 SECTOR_BUCKETS 품목 중 하나여야 합니다: {', '.join(SECTOR_BUCKETS)}"
+        )
+    result = await aggregate.build_item_countries(
+        _client(request), _validate_yymm(yymm or _default_yymm()), top, refresh=bool(refresh)
+    )
+    return result[item]
+
+
 @app.get("/debug/raw")
 async def debug_raw(request: Request, yymm: str | None = None, hs: str = "85") -> dict:
     """실제 응답 필드/세분도 확인용 — customs.py의 F_* 상수 점검."""

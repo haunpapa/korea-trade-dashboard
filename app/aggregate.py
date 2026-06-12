@@ -210,6 +210,49 @@ async def build_sector_trend(
     return out
 
 
+async def build_item_countries(
+    client: CustomsClient, yymm: str, top: int = 5, refresh: bool = False
+) -> dict[str, list[dict]]:
+    """품목별 주요 수출국 TOP N {품목명: [{name, value, share}, ...]} — 모달 분포용.
+
+    HS 중복(예: 8471 ⊂ 84)은 국가 단위에서도 동일하게 차감합니다.
+    """
+    needed = sorted({c for b in SECTOR_BUCKETS.values() for c in b.hs})
+    fetched = await client.fetch_many(yymm, needed, refresh)
+    code_country: dict[str, dict[str, float]] = {}
+    for code, rows in fetched.items():
+        d: dict[str, float] = defaultdict(float)
+        for r in rows:
+            d[r["country"]] += r["exp"]
+        code_country[code] = d
+
+    all_codes = {c for b in SECTOR_BUCKETS.values() for c in b.hs}
+    out: dict[str, list[dict]] = {}
+    for item, bucket in SECTOR_BUCKETS.items():
+        agg: dict[str, float] = defaultdict(float)
+        for ca in bucket.hs:
+            for ctry, v in code_country.get(ca, {}).items():
+                agg[ctry] += v
+            nested = {
+                cb for cb in all_codes if cb != ca and cb.startswith(ca) and cb not in bucket.hs
+            }
+            for cb in nested:
+                for ctry, v in code_country.get(cb, {}).items():
+                    agg[ctry] -= v
+        positive = {c: v for c, v in agg.items() if v > 0}
+        total = sum(positive.values())
+        ranked = sorted(positive.items(), key=lambda x: -x[1])[:top]
+        out[item] = [
+            {
+                "name": c,
+                "value": round(v / USD_TO_EOK, 1),
+                "share": round(v / total * 100, 1) if total else 0.0,
+            }
+            for c, v in ranked
+        ]
+    return out
+
+
 async def build_item_trends(
     client: CustomsClient, end_yymm: str, months: int = 12, refresh: bool = False
 ) -> dict[str, list[dict]]:
