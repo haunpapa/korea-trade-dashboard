@@ -352,15 +352,6 @@
       <div class="cal-card"><div class="cal-day">21일</div><div class="cal-t">1~20일 순별 속보</div><div class="cal-d">관세청 · 누계 잠정치. 품목·지역 증감률이 더 채워짐.</div></div>
       <div class="cal-card"><div class="cal-day">1일</div><div class="cal-t">전월 월간 동향</div><div class="cal-d">산업부 · 15대+ 품목과 9대 지역까지 가장 상세한 확정 그림.</div></div>
     </div>
-    <div class="steps" id="guideSteps">
-      <div class="step"><span class="n">1</span><div>HTML 파일을 열어 상단 <code>const DATA</code> 객체에서 해당 회차(<code>monthly</code>/<code>twentyday</code>/<code>tenday</code>)의 수치를 새 발표값으로 교체합니다.</div></div>
-      <div class="step"><span class="n">2</span><div>품목은 <code>{name, value, yoy}</code> 형태로 추가·수정하면 막대·차트·KPI가 자동 재계산됩니다. (절대금액이 없으면 <code>value:null</code> → 증감률만 표시)</div></div>
-      <div class="step"><span class="n">3</span><div>저장 후 GitHub Pages 등에 올리면 끝. 별도 빌드·서버 불필요한 단일 파일입니다.</div></div>
-    </div>
-    <div class="api-box" id="apiBox">
-      <div class="a-t">⚙️ 자동화하려면 — 관세청 Open API</div>
-      <div class="a-d">공공데이터포털 <a href="https://www.data.go.kr/data/15101633/openapi.do" target="_blank" rel="noopener">관세청 수출입실적/품목별 무역통계 API</a>를 FastAPI(예: Railway)에서 호출해 위 <code>DATA</code>와 동일한 JSON 스키마로 가공 → 정적 HTML이 <code>fetch()</code>로 읽도록 하면, 발표일마다 손대지 않고 갱신됩니다. 브라우저 직접 호출은 CORS·인증키 때문에 막히므로 백엔드 경유가 정석입니다.</div>
-    </div>
   </section>
 
   <footer>
@@ -1028,12 +1019,6 @@ async function openTrendModal(name, type){
 }
 
 /* init */
-// 배포 페이지(http/https 서빙)에서는 수동 업데이트 절차·API 연동 안내를 숨김 (file://로 열 때만 표시)
-if(location.protocol.startsWith("http")){
-  const gs=$('#guideSteps'), ab=$('#apiBox');
-  if(gs) gs.style.display='none';
-  if(ab) ab.style.display='none';
-}
 // 모달 바인딩: 닫기 버튼·배경 클릭·ESC, 매트릭스 클릭 위임
 $('#modalClose').onclick=closeModal;
 $('#modalBg').addEventListener('click',e=>{ if(e.target.id==='modalBg') closeModal(); });
