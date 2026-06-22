@@ -107,13 +107,13 @@ _CODE_FENCE_RE = re.compile(r"^```(?:json)?\s*\n(.*?)\n```\s*$", re.DOTALL)
 
 
 def _strip_code_fences(raw: str) -> str:
-    """Markdown ```json … ``` または ``` … ``` フェンスを除去する。"""
+    """Markdown ```json … ``` 또는 ``` … ``` 코드펜스를 제거한다."""
     m = _CODE_FENCE_RE.match(raw.strip())
     return m.group(1) if m else raw.strip()
 
 
 def _extract_json(raw: str) -> dict:
-    """raw文字列からJSONオブジェクトを取り出す。失敗時はReleaseParseError。"""
+    """raw 문자열에서 JSON 객체를 추출한다. 실패 시 ReleaseParseError."""
     cleaned = _strip_code_fences(raw)
     try:
         parsed = json.loads(cleaned)

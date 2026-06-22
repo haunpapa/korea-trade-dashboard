@@ -117,6 +117,29 @@ python scripts/export_static.py --push
 ① 같은 출처 API(한국 IP에서 백엔드 실행 시 실시간) → ② GitHub 정적 JSON → ③ 내장 데이터.
 배지로 현재 출처가 표시됩니다(`⚡ API 실시간` / `🗂 GitHub 데이터 · 날짜`).
 
+## 5.5 발표 헤드라인 — `data/release.json` (1·11·21일)
+
+대시보드의 **헤드라인 3블록**(월간 동향 / 1~10일 속보 / 1~20일 속보)은 `data/release.json`이 단일 진실원입니다. 대시보드는 이 파일을 fetch해 `applyRelease()`로 주입하며, 없으면 내장값으로 폴백합니다(디자인 무관).
+
+> **왜 분리?** 순별(1~10·1~20) 속보는 관세청 Open API에 **없습니다**(API는 월간 확정통계뿐). 순별은 관세청 보도자료로만 공개되므로, 헤드라인은 별도 파일로 큐레이션합니다. 이 파일이 monthly API/정적(추세 차트용)보다 헤드라인에서 **우선**합니다.
+
+### 자동 — GitHub Actions (`.github/workflows/release.yml`)
+- 매월 **1·11·21일 09~13시 KST** cron이 KDI EIEC/뉴스에서 최신 "수출입 현황" 글을 수집 → Claude로 수치 추출 → pydantic 스키마 검증 → `data/release.json` 갱신 시 **자동 PR**.
+- 사람은 PR의 숫자 diff만 확인하고 **머지(1‑클릭)** → 라이브 반영. 검증 실패·기사 미발견이면 PR을 만들지 않습니다(수동 폴백 사용).
+- 필요한 설정: 레포 Secret `ANTHROPIC_API_KEY`, Settings→Actions→General에서 "Allow GitHub Actions to create pull requests" 체크. (선택) 변수 `RELEASE_SOURCE_LIST_URL`로 소스 목록 URL 오버라이드.
+
+### 수동 폴백 — `scripts/parse_release.py`
+자동 경로 실패 시(소스 구조 변경 등) 보도자료/기사 텍스트나 URL로 직접 갱신:
+```bash
+python scripts/parse_release.py --kind twentyday --text "<보도자료/기사 본문 붙여넣기>"
+python scripts/parse_release.py --kind tenday --url "https://eiec.kdi.re.kr/policy/materialView.do?num=..."
+```
+
+### ⚠️ 최초 1회 검증 필요 (live-page 추정값)
+실제 발표 전, 아래 두 가지를 실제 페이지로 한 번 확인하세요(틀리면 `pick_latest_article`가 None → 수동 폴백):
+- `scripts/fetch_release.py`의 `RELEASE_SOURCE_LIST_URL` 기본값(EIEC 목록 URL)
+- `app/release_source.py`의 `_MONTHLY_RE` / `_TENDAY_RE` / `_TWENTYDAY_RE` (앵커 텍스트 날짜 표기 매칭)
+
 ## 6. 배포 (Railway — 대시보드 호스팅용)
 
 현재 배포:
