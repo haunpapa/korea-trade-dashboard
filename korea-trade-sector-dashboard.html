@@ -909,6 +909,8 @@ const fetchJson = (url, ms=20000) => fetch(url,{cache:"no-cache",signal:AbortSig
 
 function applyMonthly(m){ if(m&&m.totals) DATA.monthly={...DATA.monthly,...m}; }
 function applyTrend(t){ if(Array.isArray(t)&&t.length) TREND=t; }
+// 발표 헤드라인(월간·순별)을 release.json으로 주입 — 블록 통째 새 객체 할당(부분키만 오면 나머지 유지)
+function applyRelease(r){ if(r&&typeof r==='object') ['monthly','tenday','twentyday'].forEach(k=>{ if(r[k]&&typeof r[k]==='object') DATA[k]=r[k]; }); }
 const seriesOf = d => d.map(x=>x&&x.exp!=null?x.exp:null);
 
 async function hydrateFromApi(){
@@ -921,12 +923,14 @@ async function hydrateFromApi(){
   ]);
   applyMonthly(m); applyTrend(t);
   secs.forEach(r=>{ if(r&&Array.isArray(r.d)&&r.d.length) SECTOR_TREND[r.g]=seriesOf(r.d); });
+  // 헤드라인은 큐레이션 release.json(정적)이 최종 승자 — Railway API엔 없음
+  try{ const rel=await fetchJson(STATIC_DATA_BASE+"/release.json"); applyRelease(rel); }catch(e){}
   try{ const f=await fetchJson(API_BASE+"/api/fx-trend?months=12"); if(Array.isArray(f)&&f.some(x=>x&&x.rate!=null)) FX=f; }catch(e){}
   LIVE_LABEL='⚡ API 실시간 연동';
 }
 
 async function hydrateFromStatic(){
-  const [m,t,st,rt,itr,itc,meta]=await Promise.all([
+  const [m,t,st,rt,itr,itc,meta,rel]=await Promise.all([
     fetchJson(STATIC_DATA_BASE+"/monthly.json"),
     fetchJson(STATIC_DATA_BASE+"/trend.json"),
     fetchJson(STATIC_DATA_BASE+"/sector-trend.json").catch(()=>null),
@@ -934,8 +938,9 @@ async function hydrateFromStatic(){
     fetchJson(STATIC_DATA_BASE+"/item-trend.json").catch(()=>null),
     fetchJson(STATIC_DATA_BASE+"/item-countries.json").catch(()=>null),
     fetchJson(STATIC_DATA_BASE+"/meta.json").catch(()=>null),
+    fetchJson(STATIC_DATA_BASE+"/release.json").catch(()=>null),
   ]);
-  applyMonthly(m); applyTrend(t);
+  applyMonthly(m); applyTrend(t); applyRelease(rel);  // release가 헤드라인 최종 승자(applyMonthly 뒤)
   if(st) for(const g in st){ if(Array.isArray(st[g])&&st[g].length) SECTOR_TREND[g]=seriesOf(st[g]); }
   if(rt) for(const r in rt){ if(Array.isArray(rt[r])&&rt[r].length) REGION_TREND[r]=seriesOf(rt[r]); }
   if(itr) for(const k in itr){ if(Array.isArray(itr[k])&&itr[k].length) ITEM_TREND[k]=seriesOf(itr[k]); }
@@ -951,7 +956,7 @@ function saveLocal(){
   try{
     localStorage.setItem(LS_KEY, JSON.stringify({
       ts:Date.now(), source:DATA_SOURCE, label:LIVE_LABEL,
-      monthly:DATA.monthly, trend:TREND, st:SECTOR_TREND, rt:REGION_TREND, it:ITEM_TREND, ic:ITEM_COUNTRIES, fx:FX,
+      monthly:DATA.monthly, tenday:DATA.tenday, twentyday:DATA.twentyday, trend:TREND, st:SECTOR_TREND, rt:REGION_TREND, it:ITEM_TREND, ic:ITEM_COUNTRIES, fx:FX,
     }));
   }catch(e){ /* 시크릿 모드 등 저장 불가 시 무시 */ }
 }
@@ -960,6 +965,8 @@ function loadLocal(){
     const c=JSON.parse(localStorage.getItem(LS_KEY)||'null');
     if(!c || Date.now()-c.ts > 7*24*3600*1000) return false;  // 7일 경과 시 무시
     if(c.monthly&&c.monthly.totals) DATA.monthly={...DATA.monthly,...c.monthly};
+    if(c.tenday&&c.tenday.totals) DATA.tenday=c.tenday;
+    if(c.twentyday&&c.twentyday.totals) DATA.twentyday=c.twentyday;
     if(Array.isArray(c.trend)&&c.trend.length) TREND=c.trend;
     Object.assign(SECTOR_TREND, c.st||{});
     Object.assign(REGION_TREND, c.rt||{});
