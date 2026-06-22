@@ -71,9 +71,10 @@ def detect_kind(d: datetime.date) -> str:
 # 공백·물결 부호(~∼〜) 변형에 관대하게 매칭한다.
 _TILDE = r"[~∼〜\s]+"
 
-# monthly: "2026년 N월 수출입 현황" — 일(日) 범위 없이 월 단위만
+# monthly: "2026년 N월 수출입 동향/현황" — 일(日) 범위 없이 월 단위만
+# (산업부 월간은 '수출입 동향', 관세청 월간은 '수출입 현황' → 둘 다 허용)
 _MONTHLY_RE = re.compile(
-    r"\d{4}년\s*\d{1,2}월\s+수출입\s*현황",
+    r"\d{4}년\s*\d{1,2}월\s+수출입\s*(?:동향|현황)",
     re.IGNORECASE,
 )
 # tenday: "1일 ~ N월 10일" 또는 "1~10일"
@@ -116,8 +117,8 @@ def pick_latest_article(list_html: str, kind: str, base_url: str) -> str | None:
     for a in soup.find_all("a", href=True):
         text = a.get_text(strip=True)
 
-        # "수출입 현황"이 링크 텍스트에 없으면 건너뜀
-        if "수출입 현황" not in text:
+        # "수출입 현황"(관세청 순별) 또는 "수출입 동향"(산업부 월간)이 없으면 건너뜀
+        if "수출입 현황" not in text and "수출입 동향" not in text:
             continue
 
         # monthly는 일(日) 범위가 없어야 함

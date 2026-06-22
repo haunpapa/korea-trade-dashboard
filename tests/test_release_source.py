@@ -221,3 +221,37 @@ def test_fetch_body_wraps_http_error_in_source_error():
 
     with pytest.raises(SourceError):
         fetch_body("https://eiec.kdi.re.kr/policy/materialView.do?num=0", client=_ErrorClient())
+
+
+# ---------------------------------------------------------------------------
+# 실제 EIEC 라이브 포맷 회귀 (2026-06-22 확인)
+# 목록 앵커 형식: 상대경로 "./materialView.do?num=...&type=A&..."
+# ---------------------------------------------------------------------------
+
+_LIVE_BASE = "https://eiec.kdi.re.kr/policy/materialList.do?type=A"
+_LIVE_LIST_HTML = """
+<ul>
+  <li><a href="./materialView.do?num=282993&pg=&pp=&type=A&depth1=">2026년 6월 1일 ~ 6월 20일 수출입 현황 [잠정치]</a></li>
+  <li><a href="./materialView.do?num=282517&pg=&pp=&type=A&depth1=">2026년 6월 1일 ~ 6월 10일 수출입 현황 [잠정치]</a></li>
+  <li><a href="./materialView.do?num=281941&pg=&pp=&type=A&depth1=">2026년 5월 수출입 동향</a></li>
+  <li><a href="./materialView.do?num=000001">관세청장 동정</a></li>
+</ul>
+"""
+
+
+def test_live_format_twentyday_matches_real_title():
+    url = pick_latest_article(_LIVE_LIST_HTML, "twentyday", _LIVE_BASE)
+    assert url is not None
+    assert "materialView.do?num=282993" in url
+    assert url.startswith("https://eiec.kdi.re.kr/policy/")
+
+
+def test_live_format_tenday_matches_real_title():
+    url = pick_latest_article(_LIVE_LIST_HTML, "tenday", _LIVE_BASE)
+    assert url is not None and "num=282517" in url
+
+
+def test_live_format_monthly_matches_donghyang_title():
+    # 산업부 월간은 '수출입 동향' — 게이트·패턴이 동향을 허용해야 함
+    url = pick_latest_article(_LIVE_LIST_HTML, "monthly", _LIVE_BASE)
+    assert url is not None and "num=281941" in url
