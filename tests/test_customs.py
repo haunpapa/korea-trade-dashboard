@@ -101,3 +101,49 @@ class TestPagination:
         with pytest.raises(HTTPException) as ei:
             await client.fetch_rows("202605", "85")
         assert ei.value.status_code == 502
+
+
+class TestRateLimit429:
+    """429(호출 제한)는 즉시 실패가 아니라 백오프 재시도 대상이다 (2026-08-17)."""
+
+    async def test_429_then_200_succeeds(self, settings, monkeypatch):
+        from app.cache import FileCache
+        from app.customs import CustomsClient
+        import app.customs as customs_mod
+
+        settings = settings.model_copy(update={"retries": 2, "retry_backoff": 0.0})
+        calls = {"n": 0}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return httpx.Response(429, headers={"Retry-After": "0"})
+            return httpx.Response(200, text=make_xml([make_item()]))
+
+        slept: list[float] = []
+
+        async def fake_sleep(s):
+            slept.append(s)
+
+        monkeypatch.setattr(customs_mod.asyncio, "sleep", fake_sleep)
+        http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        client = CustomsClient(settings, FileCache(settings.cache_dir), http)
+
+        rows = await client.fetch_rows("202605", "85")
+
+        assert len(rows) == 1
+        assert calls["n"] == 2
+        assert len(slept) == 1
+
+    async def test_429_exhausted_raises_502_with_429_in_message(self, settings):
+        from app.cache import FileCache
+        from app.customs import CustomsClient
+
+        settings = settings.model_copy(update={"retries": 1, "retry_backoff": 0.0})
+        http = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(429)))
+        client = CustomsClient(settings, FileCache(settings.cache_dir), http)
+
+        with pytest.raises(HTTPException) as ei:
+            await client.fetch_rows("202605", "85")
+        assert ei.value.status_code == 502
+        assert "429" in str(ei.value.detail)

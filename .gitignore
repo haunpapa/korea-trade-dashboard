@@ -12,3 +12,4 @@ venv/
 
 # GitHub token (로컬 푸시용 임시 파일)
 .gh_token
+logs/

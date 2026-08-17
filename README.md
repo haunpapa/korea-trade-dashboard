@@ -105,11 +105,19 @@ Railway 환경변수 두 개만 설정하면 PC 없이 완전 자동화됩니다
 ### ② PC 수동 export (백업 수단)
 
 ```bash
-# 사전 1회: .env에 GITHUB_TOKEN 추가 (fine-grained, 이 레포 Contents: R/W만)
-update-data.bat            # Windows 더블클릭
+# Windows — 사전 1회: .env에 GITHUB_TOKEN 추가 (fine-grained, 이 레포 Contents: R/W만)
+update-data.bat            # 더블클릭
 # 또는
 python scripts/export_static.py --push
 ```
+
+**macOS / Linux** — `.env`에 `CUSTOMS_SERVICE_KEY`만 있으면 됩니다(푸시는 로컬 git 자격증명 사용, GITHUB_TOKEN 불필요).
+```bash
+./update-data.sh                    # 수집 → data/ 커밋·푸시. 로그: logs/update-data.log
+./update-data.sh --no-push          # 수집만
+./scripts/macos/install-launchd.sh  # (선택) 매일 10:00 자동 실행 launchd 에이전트 설치 / --uninstall
+```
+`_cache/`가 로컬에 남으므로 첫 실행 이후엔 새 달 분량만 호출합니다. 429(호출 제한)는 Retry-After/지수 백오프로 재시도합니다.
 
 발표일은 매월 1일(월간)·11일·21일(순별), 월간 확정치 현행화는 15일경입니다.
 

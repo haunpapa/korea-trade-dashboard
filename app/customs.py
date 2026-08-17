@@ -29,6 +29,16 @@ F_BAL = "balPayments"
 _OK_CODES = (None, "00", "0")
 _RETRYABLE = (httpx.TimeoutException, httpx.TransportError)
 
+
+def _parse_retry_after(value: str | None, fallback: float) -> float:
+    """Retry-After 헤더(초 단위 정수)를 파싱한다. 없거나 이상하면 fallback."""
+    if value is None:
+        return fallback
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        return fallback
+
 Row = dict[str, Any]
 
 
@@ -91,6 +101,17 @@ class CustomsClient:
                 )
                 r.raise_for_status()
                 return r.text
+            except httpx.HTTPStatusError as e:
+                # 429(호출 제한)는 재시도 대상 — Retry-After 가 있으면 존중, 없으면 지수 백오프
+                if e.response.status_code != 429:
+                    raise HTTPException(502, f"관세청 API HTTP {e.response.status_code}") from e
+                last_exc = e
+                retry_after = e.response.headers.get("Retry-After")
+                wait = _parse_retry_after(retry_after, self.settings.retry_backoff * (2**attempt))
+                logger.warning(
+                    "429 호출 제한, %.1fs 후 재시도(%d/%d)", wait, attempt + 1, self.settings.retries
+                )
+                await asyncio.sleep(wait)
             except _RETRYABLE as e:
                 last_exc = e
                 wait = self.settings.retry_backoff * (2**attempt)
@@ -102,8 +123,8 @@ class CustomsClient:
                     e,
                 )
                 await asyncio.sleep(wait)
-            except httpx.HTTPStatusError as e:
-                raise HTTPException(502, f"관세청 API HTTP {e.response.status_code}") from e
+        if isinstance(last_exc, httpx.HTTPStatusError):
+            raise HTTPException(502, "관세청 API HTTP 429 (재시도 소진 — 일일 쿼터 초과 가능)") from last_exc
         raise HTTPException(504, f"관세청 API 연결 실패(재시도 소진): {last_exc}")
 
     async def _fetch_pages(self, yymm: str, hs: str) -> list[Row]:
