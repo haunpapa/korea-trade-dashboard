@@ -15,6 +15,11 @@ on:
     # cron은 UTC. 00~04시 UTC = 09~13시 KST, 매월 1·11·21일 매시 정각
     - cron: '0 0-4 1,11,21 * *'
   workflow_dispatch:
+    inputs:
+      date:
+        description: '기준 날짜 YYYY-MM-DD (비우면 오늘 KST). 발표일 밖에서 수동 테스트할 때 지정'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -38,10 +43,11 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           RELEASE_SOURCE_LIST_URL: ${{ vars.RELEASE_SOURCE_LIST_URL }}
+          RELEASE_DATE: ${{ inputs.date }}
         # 성공(갱신/no-op)=exit0, 하드실패=exit2. 실패해도 PR 스텝까지는 진행하고
         # (변경 없음 → no-op), 마지막 스텝에서 잡을 실패로 표시해 눈에 띄게 한다.
         continue-on-error: true
-        run: python scripts/fetch_release.py
+        run: python scripts/fetch_release.py ${RELEASE_DATE:+--date "$RELEASE_DATE"}
 
       - name: Open PR if release.json changed
         uses: peter-evans/create-pull-request@v6
