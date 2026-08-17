@@ -50,7 +50,7 @@ fi
 PY=.venv/bin/python
 
 # 수집 (캐시 _cache/ 는 로컬에 남아 다음 실행은 신규 월만 호출)
-"$PY" scripts/export_static.py "${ARGS[@]}"
+"$PY" scripts/export_static.py ${ARGS[@]+"${ARGS[@]}"}
 
 if [[ "$PUSH" -eq 0 ]]; then
   echo "완료 (--no-push): data/ 로컬 갱신만"

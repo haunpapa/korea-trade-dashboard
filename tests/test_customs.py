@@ -107,9 +107,9 @@ class TestRateLimit429:
     """429(호출 제한)는 즉시 실패가 아니라 백오프 재시도 대상이다 (2026-08-17)."""
 
     async def test_429_then_200_succeeds(self, settings, monkeypatch):
+        import app.customs as customs_mod
         from app.cache import FileCache
         from app.customs import CustomsClient
-        import app.customs as customs_mod
 
         settings = settings.model_copy(update={"retries": 2, "retry_backoff": 0.0})
         calls = {"n": 0}
@@ -147,3 +147,52 @@ class TestRateLimit429:
             await client.fetch_rows("202605", "85")
         assert ei.value.status_code == 502
         assert "429" in str(ei.value.detail)
+
+    async def test_daily_quota_429_fails_fast_without_retry(self, settings):
+        """returnReasonCode 22(일일 요청제한 초과)는 재시도해도 소용없으므로 즉시 502, 메시지에 '일일' 명시."""
+        from app.cache import FileCache
+        from app.customs import CustomsClient
+
+        body = ("<OpenAPI_ServiceResponse><cmmMsgHeader>"
+                "<errMsg>LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR</errMsg>"
+                "<returnAuthMsg>일일 서비스 요청제한 횟수 초과 에러</returnAuthMsg>"
+                "<returnReasonCode>22</returnReasonCode></cmmMsgHeader></OpenAPI_ServiceResponse>")
+        calls = {"n": 0}
+
+        def handler(request):
+            calls["n"] += 1
+            return httpx.Response(429, text=body)
+
+        settings = settings.model_copy(update={"retries": 3, "retry_backoff": 0.0})
+        http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        client = CustomsClient(settings, FileCache(settings.cache_dir), http)
+
+        with pytest.raises(HTTPException) as ei:
+            await client.fetch_rows("202605", "85")
+        assert calls["n"] == 1
+        assert "일일" in str(ei.value.detail)
+
+
+class TestFetchManyFailure:
+    async def test_first_failure_propagates_and_no_orphan_tasks(self, settings):
+        """한 HS 가 실패하면 그 예외가 그대로 올라오고, 형제 태스크는 남지 않는다(셧다운 traceback 방지)."""
+        import asyncio
+
+        from app.cache import FileCache
+        from app.customs import CustomsClient
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if "hsSgn=85" in str(request.url):
+                return httpx.Response(500)
+            return httpx.Response(200, text=make_xml([make_item()]))
+
+        settings = settings.model_copy(update={"retries": 0})
+        http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        client = CustomsClient(settings, FileCache(settings.cache_dir), http)
+
+        with pytest.raises(HTTPException) as ei:
+            await client.fetch_many("202605", ["84", "85", "86", "87"])
+        assert ei.value.status_code == 502
+
+        pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task() and not t.done()]
+        assert pending == []

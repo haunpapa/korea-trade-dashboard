@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from fastapi import HTTPException
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -94,6 +95,7 @@ async def main() -> None:
     args = parser.parse_args()
 
     logging.basicConfig(level="INFO", format="%(asctime)s %(levelname)s %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # 요청 URL(serviceKey 포함) 로그 방지
     settings = get_settings()
     if not settings.customs_service_key:
         raise SystemExit("CUSTOMS_SERVICE_KEY가 비어 있습니다 (.env 확인).")
@@ -101,7 +103,13 @@ async def main() -> None:
     end = args.end or default_yymm()
     async with httpx.AsyncClient() as http:
         client = CustomsClient(settings, FileCache(settings.cache_dir), http)
-        data = await collect(client, end, args.months)
+        try:
+            data = await collect(client, end, args.months)
+        except HTTPException as exc:
+            # traceback 은 요청 URL(serviceKey 포함)을 노출하므로 메시지만 출력하고 종료.
+            # 이미 성공한 (월,HS) 는 _cache/ 에 남아 다음 실행에서 이어서 수집된다.
+            cached = len(list(Path(settings.cache_dir).glob("*.json")))
+            raise SystemExit(f"수집 중단: {exc.detail} (캐시 {cached}건 보존 — 재실행 시 이어서 수집)") from None
 
     paths = write_outputs(data, Path(args.outdir))
     if args.push:

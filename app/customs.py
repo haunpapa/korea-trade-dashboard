@@ -6,6 +6,7 @@ HS코드 기준 월간 확정 통계 (매월 15일경 전월 데이터 현행화
 
 import asyncio
 import logging
+import re
 import xml.etree.ElementTree as ET
 from typing import Any
 
@@ -28,6 +29,14 @@ F_BAL = "balPayments"
 
 _OK_CODES = (None, "00", "0")
 _RETRYABLE = (httpx.TimeoutException, httpx.TransportError)
+
+
+_DAILY_QUOTA_RE = re.compile(r"<returnReasonCode>\s*22\s*</returnReasonCode>|REQUESTS_EXCEEDS_ERROR")
+
+
+def _is_daily_quota_exceeded(body: str) -> bool:
+    """data.go.kr 429 본문이 '일일 서비스 요청제한 횟수 초과'(reasonCode 22)인지."""
+    return bool(_DAILY_QUOTA_RE.search(body or ""))
 
 
 def _parse_retry_after(value: str | None, fallback: float) -> float:
@@ -105,6 +114,11 @@ class CustomsClient:
                 # 429(호출 제한)는 재시도 대상 — Retry-After 가 있으면 존중, 없으면 지수 백오프
                 if e.response.status_code != 429:
                     raise HTTPException(502, f"관세청 API HTTP {e.response.status_code}") from e
+                if _is_daily_quota_exceeded(e.response.text):
+                    # 일일 요청제한 초과(reasonCode 22)는 자정(KST) 리셋 전까지 재시도 무의미 → 즉시 실패
+                    raise HTTPException(
+                        502, "관세청 API HTTP 429 — 일일 서비스 요청제한 횟수 초과(내일 다시 실행)"
+                    ) from e
                 last_exc = e
                 retry_after = e.response.headers.get("Retry-After")
                 wait = _parse_retry_after(retry_after, self.settings.retry_backoff * (2**attempt))
@@ -165,6 +179,17 @@ class CustomsClient:
     async def fetch_many(
         self, yymm: str, hs_list: list[str] | tuple[str, ...], refresh: bool = False
     ) -> dict[str, list[Row]]:
-        """여러 HS부호 동시 조회 (세마포어로 동시성 제한)."""
-        results = await asyncio.gather(*(self.fetch_rows(yymm, hs, refresh) for hs in hs_list))
+        """여러 HS부호 동시 조회 (세마포어로 동시성 제한).
+
+        하나라도 실패하면 나머지를 취소하고 첫 예외를 그대로 올린다 — gather 기본 동작은 형제
+        태스크를 고아로 남겨 셧다운 시 traceback(요청 URL의 serviceKey 포함)을 뿌린다.
+        """
+        tasks = [asyncio.ensure_future(self.fetch_rows(yymm, hs, refresh)) for hs in hs_list]
+        try:
+            results = await asyncio.gather(*tasks)
+        except BaseException:
+            for t in tasks:
+                t.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            raise
         return dict(zip(hs_list, results, strict=True))
