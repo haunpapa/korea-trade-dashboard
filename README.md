@@ -118,7 +118,7 @@ python scripts/export_static.py --push
 ./scripts/macos/install-launchd.sh  # (선택) 매일 09:00 자동 실행 launchd 에이전트 설치 / --uninstall
                                     #   작업 폴더는 ~/.local/share/korea-trade-dashboard (TCC 보호 폴더 밖, --repo 로 변경)
 ```
-`_cache/`가 로컬에 남으므로 첫 실행 이후엔 새 달 분량만 호출합니다. 429(호출 제한)는 Retry-After/지수 백오프로 재시도합니다.
+**증분 수집(기본)**: `data/`에 이전 산출물이 있으면 추이 시계열은 있는 달을 재사용하고 빠진 달 + 최근 1개월(`--refresh-recent`)만 새로 긁습니다 (콜드 12개월 ~1,500회 → 보통 300~400회, 일일 쿼터 안). 전체 재수집은 `--full`. 429는 Retry-After/지수 백오프로 재시도하되 일일 쿼터 초과(reasonCode 22)는 즉시 종료합니다.
 
 발표일은 매월 1일(월간)·11일·21일(순별), 월간 확정치 현행화는 15일경입니다.
 

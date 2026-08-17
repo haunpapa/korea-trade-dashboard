@@ -25,7 +25,8 @@ import httpx
 from . import aggregate, fx
 from .config import Settings, get_settings
 from .customs import CustomsClient
-from .mappings import REGION_NAMES, SECTOR_GROUPS
+from .incremental import missing_months, stitch_series, stitch_series_map
+from .mappings import REGION_NAMES, SECTOR_BUCKETS, SECTOR_GROUPS
 
 logger = logging.getLogger(__name__)
 
@@ -48,27 +49,68 @@ def default_yymm() -> str:
     return today.strftime("%Y%m")
 
 
-async def collect(client: CustomsClient, end_yymm: str, months: int) -> dict[str, Any]:
+async def collect(
+    client: CustomsClient,
+    end_yymm: str,
+    months: int,
+    prior: dict[str, Any] | None = None,
+    refresh_recent: int = 0,
+) -> dict[str, Any]:
     """모든 대시보드 데이터를 수집해 파일명→내용 dict로 반환.
 
     scripts/export_static.py와 공유되는 단일 구현입니다.
+
+    Args:
+        prior: 이전 산출물(파일명→내용). 주어지면 **증분 모드** — 추이 시계열은 prior 에 있는
+            달을 재사용하고 빠진 달만 months=1 로 새로 만든다(콜드 캐시 12개월 ~1,500회 →
+            보통 2~3개월 ~330회). monthly/item-countries 는 항상 최신 달 기준으로 새로 만든다.
+        refresh_recent: 증분 모드에서 prior 에 있어도 다시 빌드할 창 끝 개월 수(잠정→확정 현행화).
     """
-    logger.info("수집 시작: end=%s months=%d", end_yymm, months)
+    seq = aggregate.month_seq(end_yymm, months)
+    incremental = bool(prior) and "trend.json" in (prior or {})
+    logger.info("수집 시작: end=%s months=%d incremental=%s", end_yymm, months, incremental)
+
     monthly = await aggregate.build_monthly(client, end_yymm)
-    trend = await aggregate.build_trend(client, end_yymm, months)
-    sector_trend = {
-        g: await aggregate.build_sector_trend(client, g, end_yymm, months) for g in SECTOR_GROUPS
-    }
-    region_trend = {
-        r: await aggregate.build_region_trend(client, r, end_yymm, months) for r in REGION_NAMES
-    }
-    item_trend = await aggregate.build_item_trends(client, end_yymm, months)
     item_countries = await aggregate.build_item_countries(client, end_yymm)
-    fx_trend = await fx.build_fx_trend(client, end_yymm, months)
+
+    if not incremental:
+        trend = await aggregate.build_trend(client, end_yymm, months)
+        sector_trend = {
+            g: await aggregate.build_sector_trend(client, g, end_yymm, months) for g in SECTOR_GROUPS
+        }
+        region_trend = {
+            r: await aggregate.build_region_trend(client, r, end_yymm, months) for r in REGION_NAMES
+        }
+        item_trend = await aggregate.build_item_trends(client, end_yymm, months)
+        fx_trend = await fx.build_fx_trend(client, end_yymm, months)
+    else:
+        assert prior is not None
+        need = missing_months(prior.get("trend.json"), seq)
+        if refresh_recent > 0:
+            tail = seq[-refresh_recent:]
+            need = [ym for ym in seq if ym in need or ym in tail]
+        logger.info("증분 수집: 재사용 %d개월, 신규 %s", len(seq) - len(need), need or "없음")
+        fresh = {ym: await _build_month(client, ym) for ym in need}
+        trend = stitch_series(prior.get("trend.json"), {ym: f["trend"] for ym, f in fresh.items()}, seq)
+        sector_trend = stitch_series_map(
+            prior.get("sector-trend.json"), {ym: f["sector"] for ym, f in fresh.items()}, seq,
+            keys=SECTOR_GROUPS,
+        )
+        region_trend = stitch_series_map(
+            prior.get("region-trend.json"), {ym: f["region"] for ym, f in fresh.items()}, seq,
+            keys=REGION_NAMES,
+        )
+        item_trend = stitch_series_map(
+            prior.get("item-trend.json"), {ym: f["item"] for ym, f in fresh.items()}, seq,
+            keys=tuple(SECTOR_BUCKETS),
+        )
+        fx_trend = stitch_series(prior.get("fx.json"), {ym: f["fx"] for ym, f in fresh.items()}, seq)
+
     meta = {
         "generated_at": dt.datetime.now(KST).isoformat(timespec="seconds"),
         "end_yymm": end_yymm,
         "months": months,
+        "incremental": incremental,
         "source": "관세청 무역통계 API (HS 기준)",
     }
     return {
@@ -81,6 +123,16 @@ async def collect(client: CustomsClient, end_yymm: str, months: int) -> dict[str
         "fx.json": fx_trend,
         "meta.json": meta,
     }
+
+
+async def _build_month(client: CustomsClient, ym: str) -> dict[str, Any]:
+    """한 달치 추이 포인트 묶음 — 각 빌더를 months=1 로 호출(원시 행 캐시는 빌더 간 공유)."""
+    trend = await aggregate.build_trend(client, ym, 1)
+    sector = {g: await aggregate.build_sector_trend(client, g, ym, 1) for g in SECTOR_GROUPS}
+    region = {r: await aggregate.build_region_trend(client, r, ym, 1) for r in REGION_NAMES}
+    item = await aggregate.build_item_trends(client, ym, 1)
+    fx_pt = await fx.build_fx_trend(client, ym, 1)
+    return {"trend": trend[0], "sector": sector, "region": region, "item": item, "fx": fx_pt[0]}
 
 
 def purge_recent_cache(client: CustomsClient, yymms: list[str]) -> int:

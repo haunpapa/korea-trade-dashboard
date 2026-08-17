@@ -51,6 +51,20 @@ def default_yymm() -> str:
 from app.exporter import collect  # noqa: E402
 
 
+def load_prior(outdir: Path) -> dict[str, Any] | None:
+    """outdir 의 이전 산출물을 읽는다. trend.json 이 없거나 깨졌으면 None(전체 수집)."""
+    out: dict[str, Any] = {}
+    for name in DATA_FILES:
+        p = outdir / name
+        if not p.exists():
+            continue
+        try:
+            out[name] = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("이전 산출물 %s 읽기 실패(%s) — 무시", p, exc)
+    return out if isinstance(out.get("trend.json"), list) and out["trend.json"] else None
+
+
 def write_outputs(data: dict[str, Any], outdir: Path) -> list[Path]:
     outdir.mkdir(parents=True, exist_ok=True)
     paths = []
@@ -92,6 +106,10 @@ async def main() -> None:
     parser.add_argument("--months", type=int, default=12, help="추세 개월 수 (기본 12)")
     parser.add_argument("--push", action="store_true", help="GitHub data/ 폴더로 업로드")
     parser.add_argument("--outdir", default=str(ROOT / "data"), help="출력 폴더")
+    parser.add_argument("--full", action="store_true",
+                        help="증분 수집 끄기 — outdir 의 이전 산출물을 무시하고 12개월 전체 재수집")
+    parser.add_argument("--refresh-recent", type=int, default=1, metavar="N",
+                        help="증분 모드에서 이전 산출물에 있어도 다시 긁을 최근 N개월 (기본 1, 잠정→확정)")
     args = parser.parse_args()
 
     logging.basicConfig(level="INFO", format="%(asctime)s %(levelname)s %(message)s")
@@ -101,10 +119,14 @@ async def main() -> None:
         raise SystemExit("CUSTOMS_SERVICE_KEY가 비어 있습니다 (.env 확인).")
 
     end = args.end or default_yymm()
+    prior = None if args.full else load_prior(Path(args.outdir))
+    if prior:
+        logger.info("증분 모드: %s 의 이전 산출물(end=%s) 재사용, 최근 %d개월 재수집",
+                    args.outdir, prior.get("meta.json", {}).get("end_yymm"), args.refresh_recent)
     async with httpx.AsyncClient() as http:
         client = CustomsClient(settings, FileCache(settings.cache_dir), http)
         try:
-            data = await collect(client, end, args.months)
+            data = await collect(client, end, args.months, prior=prior, refresh_recent=args.refresh_recent)
         except HTTPException as exc:
             # traceback 은 요청 URL(serviceKey 포함)을 노출하므로 메시지만 출력하고 종료.
             # 이미 성공한 (월,HS) 는 _cache/ 에 남아 다음 실행에서 이어서 수집된다.
