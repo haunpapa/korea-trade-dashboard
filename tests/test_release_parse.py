@@ -197,3 +197,24 @@ def test_templates_validate_against_schema(kind):
     from app.release_templates import TEMPLATES, overlay_header
 
     validate_release({kind: overlay_header(kind, TEMPLATES[kind])})
+
+
+def test_tenday_all_null_workdays_becomes_none():
+    """EIEC 요약에 조업일수가 없어 LLM이 workdays 를 전부 null 로 내면 블록의 workdays 는 None 이어야 한다(검증 실패 금지)."""
+    from app.release_parse import parse_release_text
+
+    block = {**_valid_block_for("tenday"), "workdays": {"now": None, "prev": None}}
+    out = parse_release_text("본문", "tenday", client=FakeClient(json.dumps({"tenday": block})))["tenday"]
+
+    assert out["workdays"] is None
+    assert out["totals"]["exports"] == 1.0
+
+
+def test_twentyday_all_null_semishare_becomes_none():
+    """semiShare.value 가 null 이면 semiShare 는 None 으로 정규화된다."""
+    from app.release_parse import parse_release_text
+
+    block = {**_valid_block_for("twentyday"), "semiShare": {"value": None, "label": None, "note": None}}
+    out = parse_release_text("본문", "twentyday", client=FakeClient(json.dumps({"twentyday": block})))["twentyday"]
+
+    assert out["semiShare"] is None

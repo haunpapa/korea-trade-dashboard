@@ -124,3 +124,21 @@ def prompt_template(kind: str) -> str:
 def overlay_header(kind: str, block: dict) -> dict:
     """LLM 블록 위에 코드 상수 헤더를 덮어쓴 새 dict를 반환한다(입력 불변)."""
     return {**block, **HEADER_CONST[kind]}
+
+
+# 값이 전부 null 이면 객체 자체를 None 으로 떨어뜨릴 선택 필드 (대시보드는 falsy 면 해당 카드 생략)
+_NULLABLE_OBJECTS: dict[str, tuple[str, ...]] = {
+    "monthly": (),
+    "tenday": ("workdays",),
+    "twentyday": ("semiShare",),
+}
+
+
+def normalize_optional_objects(kind: str, block: dict) -> dict:
+    """선택 중첩 객체의 값이 모두 null 이면 그 키를 None 으로 바꾼 새 dict를 반환한다(입력 불변)."""
+    out = dict(block)
+    for key in _NULLABLE_OBJECTS[kind]:
+        obj = out.get(key)
+        if isinstance(obj, dict) and all(v is None for v in obj.values()):
+            out[key] = None
+    return out

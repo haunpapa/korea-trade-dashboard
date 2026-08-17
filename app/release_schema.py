@@ -140,7 +140,7 @@ class Monthly(_Header):
 
 class Tenday(_Header):
     totals: Totals
-    workdays: Workdays
+    workdays: Optional[Workdays] = None  # 순별 요약에 조업일수가 없을 수 있음
     items: list[Item]
     regions: list[Region]
     note: str
@@ -148,7 +148,7 @@ class Tenday(_Header):
 
 class Twentyday(_Header):
     totals: Totals
-    semiShare: SemiShare
+    semiShare: Optional[SemiShare] = None  # 요약에 반도체 비중이 없을 수 있음
     items: list[Item]
     regions: list[Region]
     note: str

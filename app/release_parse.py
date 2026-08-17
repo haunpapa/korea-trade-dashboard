@@ -20,7 +20,7 @@ import re
 from typing import Literal
 
 from app.release_schema import ReleaseValidationError, validate_release
-from app.release_templates import overlay_header, prompt_template
+from app.release_templates import normalize_optional_objects, overlay_header, prompt_template
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +179,7 @@ def parse_release_text(
 
     # 헤더 상수(tab/tabDay/granularity/src/status)는 LLM을 믿지 않고 코드가 덮어쓴다
     if isinstance(parsed.get(kind), dict):
-        parsed = {**parsed, kind: overlay_header(kind, parsed[kind])}
+        parsed = {**parsed, kind: normalize_optional_objects(kind, overlay_header(kind, parsed[kind]))}
 
     # validate_release는 입력을 변경하지 않고 새 dict를 반환함
     try:
