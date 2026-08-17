@@ -183,3 +183,41 @@ def test_no_op_when_block_unchanged(tmp_path, monkeypatch):
     # 파일이 변경되지 않았는지 확인 (mtime 비교)
     mtime_after = out_file.stat().st_mtime
     assert mtime_after == mtime_before, "no-op인데 파일이 재작성됐습니다"
+
+
+# ---------------------------------------------------------------------------
+# 회귀: GitHub Actions는 미설정 vars 를 빈 문자열로 넘긴다.
+# RELEASE_SOURCE_LIST_URL="" 이면 기본 EIEC URL을 써야 한다(빈 URL로 요청 금지).
+# ---------------------------------------------------------------------------
+def test_empty_source_url_env_falls_back_to_default(tmp_path, monkeypatch):
+    """RELEASE_SOURCE_LIST_URL 이 빈 문자열이면 _DEFAULT_LIST_URL 로 목록을 요청한다."""
+    from scripts import fetch_release
+
+    requested: list[str] = []
+
+    class _RecordingClient(_FakeHttpxClient):
+        def get(self, url, **kwargs):
+            requested.append(url)
+            return super().get(url, **kwargs)
+
+    monkeypatch.setenv("RELEASE_SOURCE_LIST_URL", "")
+    monkeypatch.setattr(
+        "scripts.fetch_release.httpx.Client",
+        lambda **kwargs: _RecordingClient(_CANNED_LIST_HTML),
+    )
+    monkeypatch.setattr(
+        "scripts.fetch_release.pick_latest_article",
+        lambda html, kind, base_url: _ARTICLE_URL,
+    )
+    monkeypatch.setattr("scripts.fetch_release.fetch_body", lambda url, **kwargs: "본문")
+    monkeypatch.setattr(
+        "scripts.fetch_release.parse_release_text",
+        lambda text, kind, client: {"twentyday": VALID_BLOCK},
+    )
+    monkeypatch.setattr("scripts.fetch_release.default_client", lambda: object())
+
+    out_file = tmp_path / "release.json"
+    result = fetch_release.main(["--date", "2026-06-21", "--out", str(out_file)])
+
+    assert result == 0
+    assert requested == [fetch_release._DEFAULT_LIST_URL]
