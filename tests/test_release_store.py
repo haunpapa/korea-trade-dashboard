@@ -183,3 +183,55 @@ def test_merge_no_source_url_by_default(tmp_path):
     result = merge_release_block(target, "twentyday", _SAMPLE_BLOCK)
 
     assert "source_url" not in result
+
+
+# ---------------------------------------------------------------------------
+# 다운그레이드 방지 (2026-08-17): 같은 period 를 더 빈약하게 재파싱한 블록은 변경으로 보지 않는다
+# ---------------------------------------------------------------------------
+def _sparser(block: dict) -> dict:
+    """같은 period, 총괄만 남고 상세는 null 인 블록."""
+    return {
+        **block,
+        "totals": {**block["totals"], "dailyAvg": None, "dailyAvgYoY": None},
+        "items": [{"name": "반도체", "value": None, "yoy": None}],
+        "note": "요약문 기반 재파싱",
+    }
+
+
+def test_block_changed_false_when_same_period_but_sparser(tmp_path):
+    """동일 period 인데 non-null 값이 더 적은 블록은 no-op(다운그레이드 방지)."""
+    from app.release_store import block_changed, merge_release_block
+
+    path = tmp_path / "release.json"
+    rich = {**_SAMPLE_BLOCK, "period": "2026년 8월 1~10일",
+            "totals": {**_SAMPLE_BLOCK["totals"], "dailyAvg": 30.4, "dailyAvgYoY": 45.3},
+            "items": [{"name": "반도체", "value": 99.5, "yoy": 155.4}]}
+    merge_release_block(path, "tenday", rich)
+
+    assert block_changed(path, "tenday", _sparser(rich)) is False
+
+
+def test_block_changed_true_when_new_period_even_if_sparser(tmp_path):
+    """period 가 다르면(새 회차) 빈약해도 변경으로 인정한다."""
+    from app.release_store import block_changed, merge_release_block
+
+    path = tmp_path / "release.json"
+    rich = {**_SAMPLE_BLOCK, "period": "2026년 8월 1~10일",
+            "items": [{"name": "반도체", "value": 99.5, "yoy": 155.4}]}
+    merge_release_block(path, "tenday", rich)
+
+    newer = {**_sparser(rich), "period": "2026년 8월 1~20일"}
+    assert block_changed(path, "tenday", newer) is True
+
+
+def test_block_changed_true_when_same_period_and_richer(tmp_path):
+    """동일 period 라도 non-null 값이 더 많아지면(보강) 변경으로 인정한다."""
+    from app.release_store import block_changed, merge_release_block
+
+    path = tmp_path / "release.json"
+    sparse = {**_SAMPLE_BLOCK, "period": "2026년 8월 1~10일",
+              "items": [{"name": "반도체", "value": None, "yoy": None}]}
+    merge_release_block(path, "tenday", sparse)
+
+    richer = {**sparse, "items": [{"name": "반도체", "value": 99.5, "yoy": 155.4}]}
+    assert block_changed(path, "tenday", richer) is True

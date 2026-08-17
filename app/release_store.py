@@ -108,5 +108,22 @@ def block_changed(path, kind: str, block: dict) -> bool:
     if kind not in existing:
         return True
 
-    # generated_at / source_url은 최상위 키이므로 블록 비교에 영향 없음
-    return existing[kind] != block
+    old = existing[kind]
+    if old == block:
+        return False
+
+    # 다운그레이드 방지: 같은 period 를 더 빈약하게(non-null 값이 더 적게) 재파싱한 결과는
+    # 큐레이션된 기존 블록을 덮어쓰지 않는다. 새 회차(period 다름)·보강(값 증가)·정정(개수 동일)은 인정.
+    if isinstance(old, dict) and old.get("period") == block.get("period"):
+        return _count_non_null(block) >= _count_non_null(old)
+
+    return True
+
+
+def _count_non_null(obj: Any) -> int:
+    """중첩 dict/list 안의 non-null 리프 값 개수."""
+    if isinstance(obj, dict):
+        return sum(_count_non_null(v) for v in obj.values())
+    if isinstance(obj, list):
+        return sum(_count_non_null(v) for v in obj)
+    return 0 if obj is None else 1
