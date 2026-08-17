@@ -115,7 +115,7 @@ python scripts/export_static.py --push
 ```bash
 ./update-data.sh                    # 수집 → data/ 커밋·푸시. 로그: logs/update-data.log
 ./update-data.sh --no-push          # 수집만
-./scripts/macos/install-launchd.sh  # (선택) 매일 10:00 자동 실행 launchd 에이전트 설치 / --uninstall
+./scripts/macos/install-launchd.sh  # (선택) 매일 09:00 자동 실행 launchd 에이전트 설치 / --uninstall
 ```
 `_cache/`가 로컬에 남으므로 첫 실행 이후엔 새 달 분량만 호출합니다. 429(호출 제한)는 Retry-After/지수 백오프로 재시도합니다.
 
