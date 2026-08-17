@@ -132,3 +132,68 @@ def test_system_prompt_has_injection_guard():
 def test_module_imports_without_anthropic():
     # If the lazy-import is broken, collection of this test would already fail.
     import app.release_parse  # noqa: F401
+
+
+# ---------------------------------------------------------------------------
+# 라이브 회귀(2026-08-17): 프롬프트에 출력 형태가 없어 모델이 임의 구조로 답함
+# ---------------------------------------------------------------------------
+class RecordingClient(FakeClient):
+    def complete(self, system: str, user: str) -> str:
+        self.system, self.user = system, user
+        return self.payload
+
+
+@pytest.mark.parametrize("kind,required", [
+    ("monthly", ["totals", "highlight", "groups", "regions", "imports"]),
+    ("tenday", ["totals", "workdays", "items", "regions", "note"]),
+    ("twentyday", ["totals", "semiShare", "items", "regions", "note"]),
+])
+def test_prompt_includes_kind_json_template(kind, required):
+    """유저 프롬프트에 해당 kind의 JSON 템플릿(래퍼 키 + 필수 필드)이 들어가야 한다."""
+    from app.release_parse import parse_release_text
+    from tests.test_release_parse import VALID  # noqa: F401 (twentyday만 유효 페이로드)
+
+    payload_block = _valid_block_for(kind)
+    client = RecordingClient(json.dumps({kind: payload_block}))
+    parse_release_text("본문", kind, client=client)
+
+    assert f'"{kind}"' in client.user, "래퍼 키가 프롬프트에 없음"
+    for key in required + ["exports", "exportsYoY", "period", "date"]:
+        assert f'"{key}"' in client.user, f"템플릿에 {key} 없음"
+
+
+def test_header_constants_are_overlaid_by_code():
+    """tab/tabDay/granularity/src 는 LLM 출력과 무관하게 코드 상수로 채워진다."""
+    from app.release_parse import parse_release_text
+
+    llm_block = {k: v for k, v in VALID.items() if k not in ("tab", "tabDay", "granularity", "src")}
+    llm_block["status"] = "아무거나"
+    client = FakeClient(json.dumps({"twentyday": llm_block}))
+
+    out = parse_release_text("본문", "twentyday", client=client)["twentyday"]
+
+    assert out["tab"] == "1~20일 속보"
+    assert out["tabDay"] == "21일 발표 · 관세청"
+    assert out["granularity"] == "partial"
+    assert out["src"] == "관세청"
+    assert out["status"] == "순별 잠정"
+
+
+def _valid_block_for(kind: str) -> dict:
+    header = {"period": "2026년 8월", "date": "2026.08.11", "tab": "", "tabDay": "", "granularity": "", "status": "", "src": ""}
+    totals = {"exports": 1.0, "exportsYoY": 1.0, "imports": 1.0, "importsYoY": 1.0, "balance": 0.0, "dailyAvg": None, "dailyAvgYoY": None}
+    if kind == "monthly":
+        return {**header, "totals": totals, "highlight": {"ytd": 1.0, "note": "n"}, "groups": [], "regions": [],
+                "imports": {"energy": 1, "crude": 1, "nonEnergy": 1, "energyYoY": 1, "crudeYoY": 1, "nonEnergyYoY": 1}}
+    if kind == "tenday":
+        return {**header, "totals": totals, "workdays": {"now": 7.0, "prev": 7.0}, "items": [], "regions": [], "note": "n"}
+    return {**header, "totals": totals, "semiShare": {"value": 1.0, "label": "l", "note": "n"}, "items": [], "regions": [], "note": "n"}
+
+
+@pytest.mark.parametrize("kind", ["monthly", "tenday", "twentyday"])
+def test_templates_validate_against_schema(kind):
+    """프롬프트 템플릿 + 헤더 상수는 그대로 release_schema를 통과해야 한다(템플릿 드리프트 방지)."""
+    from app.release_schema import validate_release
+    from app.release_templates import TEMPLATES, overlay_header
+
+    validate_release({kind: overlay_header(kind, TEMPLATES[kind])})

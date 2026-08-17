@@ -20,6 +20,7 @@ import re
 from typing import Literal
 
 from app.release_schema import ReleaseValidationError, validate_release
+from app.release_templates import overlay_header, prompt_template
 
 
 # ---------------------------------------------------------------------------
@@ -49,6 +50,12 @@ SYSTEM_PROMPT: str = (
     "3. 알 수 없거나 기사에 없는 값은 반드시 null로 기재하십시오.\n"
     "4. 응답은 JSON만 포함해야 합니다. 설명, 주석, 마크다운 텍스트를 추가하지 마십시오.\n"
     "5. 요청된 블록 종류(monthly | tenday | twentyday)에 해당하는 데이터만 추출하십시오.\n"
+    "6. 응답 JSON은 사용자 메시지에 제시된 템플릿과 **정확히 같은 키 구조**여야 합니다. "
+    "최상위는 반드시 {\"<kind>\": {...}} 한 개의 래퍼 키이며, 템플릿에 없는 키를 추가하거나 "
+    "키 이름·중첩을 바꾸지 마십시오. 템플릿의 숫자는 예시일 뿐이므로 기사 값으로 교체하십시오.\n"
+    "7. period는 '2026년 8월 1~10일'처럼, date는 발표일을 'YYYY.MM.DD'로, "
+    "금액은 억 달러 소수 첫째 자리까지 기재하십시오. items/groups/regions는 기사에 있는 "
+    "항목만 넣고 없는 절대금액은 value: null 로 두십시오.\n"
 )
 
 
@@ -158,7 +165,8 @@ def parse_release_text(
 
     user_prompt = (
         f"<article>\n{text}\n</article>\n\n"
-        f"위 기사에서 '{kind}' 블록을 추출해 JSON으로만 답하세요."
+        f"위 기사에서 '{kind}' 블록을 추출해 아래 템플릿과 동일한 구조의 JSON으로만 답하세요.\n"
+        f"<template>\n{prompt_template(kind)}\n</template>"
     )
 
     raw = client.complete(SYSTEM_PROMPT, user_prompt)
@@ -168,6 +176,10 @@ def parse_release_text(
     # 최상단에 kind 키가 없지만 totals 키가 있는 bare block이면 래핑
     if kind not in parsed and "totals" in parsed:
         parsed = {kind: parsed}
+
+    # 헤더 상수(tab/tabDay/granularity/src/status)는 LLM을 믿지 않고 코드가 덮어쓴다
+    if isinstance(parsed.get(kind), dict):
+        parsed = {**parsed, kind: overlay_header(kind, parsed[kind])}
 
     # validate_release는 입력을 변경하지 않고 새 dict를 반환함
     try:
