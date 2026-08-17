@@ -1,91 +1,310 @@
 {
- "generated_at": "2026-06-22T10:00:00+09:00",
- "source_url": "관세청 보도자료(2026.6.22 · 6월 1~20일 수출입현황 잠정치) · 교차확인 fnnews.com / intn.co.kr",
+ "generated_at": "2026-08-17T15:16:44+09:00",
+ "source_url": "https://eiec.kdi.re.kr/policy/materialView.do?num=285282 (관세청 2026.8.11 · 8월 1~10일 수출입현황 잠정치) · 교차확인 newsis.com / hankyung.com / mk.co.kr",
  "monthly": {
   "tab": "월간 동향",
   "tabDay": "1일 발표 · 산업부",
   "granularity": "full",
-  "period": "2026년 5월 (1~31일)",
+  "period": "2026년 7월 (1~31일)",
   "status": "월간 잠정",
-  "src": "산업통상자원부",
-  "date": "2026.06.01",
-  "totals": { "exports": 877.5, "exportsYoY": 53.2, "imports": 608.0, "importsYoY": 20.8, "balance": 269.5, "dailyAvg": 42.8, "dailyAvgYoY": 60.7 },
-  "highlight": { "ytd": 1019.1, "note": "1~5월 누적 흑자. 2017년 연간 최대(952억)를 5개월 만에 조기 경신한 사상 최대치." },
+  "src": "산업통상부",
+  "date": "2026.08.01",
+  "totals": {
+   "exports": 988.9,
+   "exportsYoY": 62.8,
+   "imports": 685.6,
+   "importsYoY": 26.5,
+   "balance": 303.2,
+   "dailyAvg": 41.2,
+   "dailyAvgYoY": 69.6
+  },
+  "highlight": {
+   "ytd": 1680.1,
+   "note": "1~7월 누적 흑자 1,680억 달러(전년 동기比 +1,341억). 7월 수출 988.9억은 역대 월간 2위·7월 최대, 반도체 두 달 연속 400억 돌파. 조업일수 24.0일(전년 25.0일)에도 20대 주력품목 중 19개 증가."
+  },
   "groups": [
-   { "name": "IT·반도체", "items": [
-    { "name": "반도체", "value": 371.6, "yoy": 169.4, "star": true },
-    { "name": "컴퓨터(SSD)", "value": 41.8, "yoy": 290.7 },
-    { "name": "디스플레이", "value": 14.7, "yoy": 9.4 },
-    { "name": "무선통신기기", "value": 14.6, "yoy": 12.6 }
-   ] },
-   { "name": "모빌리티", "items": [
-    { "name": "자동차", "value": 58.3, "yoy": -5.9 },
-    { "name": "선박", "value": 26.1, "yoy": 16.7 },
-    { "name": "자동차부품", "value": 16.0, "yoy": -12.0, "est": true },
-    { "name": "이차전지", "value": 6.0, "yoy": -5.0, "est": true }
-   ] },
-   { "name": "에너지·화학", "items": [
-    { "name": "석유제품", "value": 52.5, "yoy": 46.6 },
-    { "name": "석유화학", "value": 37.0, "yoy": 11.1 }
-   ] },
-   { "name": "소재·기계", "items": [
-    { "name": "일반기계", "value": 38.2, "yoy": -6.3 },
-    { "name": "철강", "value": 20.4, "yoy": -2.1 },
-    { "name": "비철금속", "value": 16.7, "yoy": 41.5 }
-   ] },
-   { "name": "소비재·바이오", "items": [
-    { "name": "바이오헬스", "value": 14.4, "yoy": 5.2 },
-    { "name": "화장품", "value": 11.8, "yoy": 24.2 },
-    { "name": "농수산식품", "value": 10.7, "yoy": 4.7 },
-    { "name": "가전", "value": 6.0, "yoy": -6.0, "est": true },
-    { "name": "섬유", "value": 9.0, "yoy": 4.0, "est": true }
-   ] }
+   {
+    "name": "IT·반도체",
+    "items": [
+     {
+      "name": "반도체",
+      "value": 410.1,
+      "yoy": 178.8,
+      "star": true
+     },
+     {
+      "name": "컴퓨터(SSD)",
+      "value": 47.9,
+      "yoy": 404.0
+     },
+     {
+      "name": "디스플레이",
+      "value": null,
+      "yoy": 2.4
+     },
+     {
+      "name": "무선통신기기",
+      "value": 18.1,
+      "yoy": 51.0
+     }
+    ]
+   },
+   {
+    "name": "모빌리티",
+    "items": [
+     {
+      "name": "자동차",
+      "value": 62.4,
+      "yoy": 7.0
+     },
+     {
+      "name": "선박",
+      "value": 32.9,
+      "yoy": 46.9
+     },
+     {
+      "name": "자동차부품",
+      "value": 19.5,
+      "yoy": 2.2
+     },
+     {
+      "name": "이차전지",
+      "value": 6.8,
+      "yoy": 17.2
+     }
+    ]
+   },
+   {
+    "name": "에너지·화학",
+    "items": [
+     {
+      "name": "석유제품",
+      "value": 56.8,
+      "yoy": 34.1
+     },
+     {
+      "name": "석유화학",
+      "value": 41.8,
+      "yoy": 10.3
+     }
+    ]
+   },
+   {
+    "name": "소재·기계",
+    "items": [
+     {
+      "name": "일반기계",
+      "value": 45.3,
+      "yoy": 5.9
+     },
+     {
+      "name": "철강",
+      "value": 23.6,
+      "yoy": 4.4
+     },
+     {
+      "name": "비철금속",
+      "value": 17.3,
+      "yoy": 23.9
+     }
+    ]
+   },
+   {
+    "name": "소비재·바이오",
+    "items": [
+     {
+      "name": "바이오헬스",
+      "value": 15.7,
+      "yoy": 30.4
+     },
+     {
+      "name": "화장품",
+      "value": 13.5,
+      "yoy": 37.8
+     },
+     {
+      "name": "농수산식품",
+      "value": 10.9,
+      "yoy": 2.3
+     },
+     {
+      "name": "가전",
+      "value": 6.1,
+      "yoy": -4.1
+     }
+    ]
+   }
   ],
   "regions": [
-   { "name": "중국", "value": 189.0, "yoy": 80.9 },
-   { "name": "미국", "value": 159.7, "yoy": 59.1 },
-   { "name": "아세안", "value": 158.5, "yoy": 58.4 },
-   { "name": "EU", "value": 61.9, "yoy": 2.4 },
-   { "name": "중동", "value": 12.7, "yoy": -7.7 }
+   {
+    "name": "중국",
+    "value": 216.8,
+    "yoy": 96.2
+   },
+   {
+    "name": "미국",
+    "value": 174.3,
+    "yoy": 68.7
+   },
+   {
+    "name": "아세안",
+    "value": 188.0,
+    "yoy": 73.7
+   },
+   {
+    "name": "EU",
+    "value": 93.8,
+    "yoy": 55.7
+   },
+   {
+    "name": "중동",
+    "value": 18.3,
+    "yoy": 24.7
+   }
   ],
-  "imports": { "energy": 117.5, "energyYoY": 15.9, "crude": 84.7, "crudeYoY": 25.0, "nonEnergy": 490.5, "nonEnergyYoY": 22.0 }
+  "imports": {
+   "energy": 144.8,
+   "energyYoY": 50.1,
+   "crude": 93.0,
+   "crudeYoY": 54.2,
+   "nonEnergy": 540.8,
+   "nonEnergyYoY": 21.4
+  }
  },
  "tenday": {
   "tab": "1~10일 속보",
   "tabDay": "11일 발표 · 관세청",
   "granularity": "partial",
-  "period": "2026년 6월 1~10일",
-  "status": "순별 잠정",
+  "period": "2026년 8월 1~10일",
+  "status": "순별 잠정 · 최신",
   "src": "관세청",
-  "date": "2026.06.11",
-  "totals": { "exports": 286.4, "exportsYoY": 85.9, "imports": 233.5, "importsYoY": 35.6, "balance": 52.8, "dailyAvg": null, "dailyAvgYoY": 46.1 },
-  "workdays": { "now": 7.0, "prev": 5.5 },
+  "date": "2026.08.11",
+  "totals": {
+   "exports": 212.9,
+   "exportsYoY": 45.3,
+   "imports": 195.0,
+   "importsYoY": 23.1,
+   "balance": 18.0,
+   "dailyAvg": 30.4,
+   "dailyAvgYoY": 45.3
+  },
+  "workdays": {
+   "now": 7.0,
+   "prev": 7.0
+  },
   "items": [
-   { "name": "반도체", "value": 111.0, "valuePrefix": "≈", "yoy": null, "star": true, "tag": "역대 최대" }
+   {
+    "name": "반도체",
+    "value": 99.5,
+    "yoy": 155.4,
+    "star": true,
+    "tag": "8월 초순 역대 최대"
+   },
+   {
+    "name": "석유제품",
+    "value": 20.0,
+    "yoy": 65.3
+   },
+   {
+    "name": "컴퓨터주변기기",
+    "value": 5.9,
+    "yoy": 139.5
+   },
+   {
+    "name": "철강제품",
+    "value": null,
+    "yoy": 4.3
+   },
+   {
+    "name": "무선통신기기",
+    "value": null,
+    "yoy": -9.1
+   },
+   {
+    "name": "자동차부품",
+    "value": null,
+    "yoy": -36.3
+   },
+   {
+    "name": "선박",
+    "value": null,
+    "yoy": -58.2
+   },
+   {
+    "name": "승용차",
+    "value": null,
+    "yoy": -80.9
+   }
   ],
   "regions": [],
-  "note": "6/11 공개된 6월 초 10일 실적. 단기 통계라 조업일수(7.0일, 전년 5.5일) 증가 영향이 크며, 품목별 상세는 21일·월말 발표에서 채워집니다."
+  "note": "8/11 공개된 8월 초 10일 실적(8월 동기간 역대 최대). 조업일수 7.0일로 전년과 같아 일평균도 +45.3%(30.4억). 반도체 비중 46.8%(+20.1%p). 국가별 수출 중국 +134.8%·홍콩 +259.4%·EU +57.2%·베트남 +45.4%, 미국 −0.2%. 에너지 수입 −13.8%(원유 −16.9%, 가스 −10.0%). 품목 상세는 21일·월말 발표에서 보강."
  },
  "twentyday": {
   "tab": "1~20일 속보",
   "tabDay": "21일 발표 · 관세청",
   "granularity": "partial",
-  "period": "2026년 6월 1~20일",
-  "status": "순별 잠정 · 최신",
+  "period": "2026년 7월 1~20일",
+  "status": "순별 잠정",
   "src": "관세청",
-  "date": "2026.06.21",
-  "totals": { "exports": 620.0, "exportsYoY": 60.4, "imports": 445.0, "importsYoY": 23.2, "balance": 175.0, "dailyAvg": null, "dailyAvgYoY": null },
-  "semiShare": { "value": 41.2, "label": "반도체 수출 비중", "note": "전체 수출의 41.2% (전년동기비 +18.3%p). 반도체 255.1억 달러(+188.4%)로 동기간 역대최대." },
+  "date": "2026.07.21",
+  "totals": {
+   "exports": 549.3,
+   "exportsYoY": 52.3,
+   "imports": 427.2,
+   "importsYoY": 20.0,
+   "balance": 122.2,
+   "dailyAvg": 37.9,
+   "dailyAvgYoY": 62.9
+  },
+  "semiShare": {
+   "value": 40.3,
+   "label": "반도체 수출 비중",
+   "note": "전체 수출의 40.3% (전년동기비 +18.4%p). 반도체 221.1억 달러(+180.6%)로 동기간 역대최대."
+  },
   "items": [
-   { "name": "반도체", "value": 255.1, "yoy": 188.4, "star": true },
-   { "name": "컴퓨터주변기기", "value": null, "yoy": 293.3 },
-   { "name": "무선통신기기", "value": null, "yoy": 46.0 },
-   { "name": "선박", "value": null, "yoy": 39.9 },
-   { "name": "석유제품", "value": null, "yoy": 39.0 },
-   { "name": "철강제품", "value": null, "yoy": 12.9 },
-   { "name": "승용차", "value": null, "yoy": 2.3 }
+   {
+    "name": "반도체",
+    "value": 221.1,
+    "yoy": 180.6,
+    "star": true
+   },
+   {
+    "name": "컴퓨터주변기기",
+    "value": null,
+    "yoy": 231.9
+   },
+   {
+    "name": "선박",
+    "value": null,
+    "yoy": 70.8
+   },
+   {
+    "name": "무선통신기기",
+    "value": null,
+    "yoy": 65.9
+   },
+   {
+    "name": "석유제품",
+    "value": null,
+    "yoy": 33.4
+   },
+   {
+    "name": "철강제품",
+    "value": null,
+    "yoy": 11.1
+   },
+   {
+    "name": "승용차",
+    "value": null,
+    "yoy": -10.6
+   },
+   {
+    "name": "자동차부품",
+    "value": null,
+    "yoy": -9.6
+   }
   ],
   "regions": [],
-  "note": "1~20일 누계 잠정치(수출 620억 +60.4%, 동기간 역대최대). 절대금액은 총괄·반도체 위주로 공개되어 그 외 품목은 증감률 중심. 지역별 절대치는 보도자료 본문/첨부 확인 시 보강."
+  "note": "1~20일 누계 잠정치(수출 549.3억 +52.3%, 7월 동기간 역대최대). 조업일수 14.5일(전년 15.5일)로 하루 적었으나 일평균 37.9억(+62.9%). 국가별 수출 중국 +94.1%·베트남 +82.4%·미국 +39.6%·EU +30.3%·홍콩 +123.7%. 절대금액은 총괄·반도체 위주로 공개되어 그 외 품목은 증감률 중심."
  }
 }

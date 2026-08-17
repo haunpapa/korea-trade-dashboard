@@ -133,7 +133,8 @@ def main(argv: list[str] | None = None) -> int:
     logger.info("처리 시작 — date=%s, kind=%s", date.isoformat(), kind)
 
     # 소스 목록 URL 결정
-    list_url = os.environ.get("RELEASE_SOURCE_LIST_URL", _DEFAULT_LIST_URL)
+    # GitHub Actions는 미설정 vars 를 빈 문자열로 넘기므로 `or` 로 기본값 폴백
+    list_url = os.environ.get("RELEASE_SOURCE_LIST_URL") or _DEFAULT_LIST_URL
 
     # 목록 페이지 원본 HTML 수집 (앵커 파싱용 — fetch_body가 아닌 raw HTML 필요)
     try:

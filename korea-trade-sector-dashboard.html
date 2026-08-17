@@ -706,12 +706,17 @@ function buildSide(){
   if(d.granularity==='partial' && !d.semiShare && starItem){
     parts.push(`<div class="callout info" style="margin-bottom:14px"><div class="ic">💠</div><div>
       <div class="c-t">${starItem.name} <b style="font-family:var(--mono)">${starItem.valuePrefix||''}${fmt(starItem.value)}억$</b>${starItem.tag?` · ${starItem.tag}`:''}</div>
-      <div class="c-d">반도체가 이번 속보의 핵심 동력으로, 6월 초 수출 급증을 견인했습니다.</div></div></div>`);
+      <div class="c-d">반도체가 이번 속보의 핵심 동력으로, ${(/(\d{1,2})월/.exec(d.period||'')||[,''])[1]}월 초 수출 급증을 견인했습니다.</div></div></div>`);
   }
   if(d.workdays){
+    const wdDiff=(d.workdays.now??0)-(d.workdays.prev??0);
+    const wdTitle=wdDiff===0?'조업일수 동일':'조업일수 보정 필요';
+    const wdDesc=wdDiff>0?'이번 기간 영업일이 늘어 증가율이 부풀려 보일 수 있습니다.'
+      :wdDiff<0?'이번 기간 영업일이 줄어 증가율이 실제보다 낮아 보일 수 있습니다.'
+      :'영업일이 전년과 같아 증가율을 그대로 비교할 수 있습니다.';
     parts.push(`<div class="callout amber" style="margin-bottom:14px"><div class="ic">📅</div><div>
-      <div class="c-t">조업일수 보정 필요</div>
-      <div class="c-d">이번 기간 영업일이 늘어 증가율이 부풀려 보일 수 있습니다.</div>
+      <div class="c-t">${wdTitle}</div>
+      <div class="c-d">${wdDesc}</div>
       <div class="workdays" style="margin-top:10px">
         <div class="wd-box"><div class="n">${d.workdays.prev}</div><div class="l">전년 일수</div></div>
         <span class="wd-arrow">→</span>
@@ -910,7 +915,22 @@ const fetchJson = (url, ms=20000) => fetch(url,{cache:"no-cache",signal:AbortSig
 function applyMonthly(m){ if(m&&m.totals) DATA.monthly={...DATA.monthly,...m}; }
 function applyTrend(t){ if(Array.isArray(t)&&t.length) TREND=t; }
 // 발표 헤드라인(월간·순별)을 release.json으로 주입 — 블록 통째 새 객체 할당(부분키만 오면 나머지 유지)
-function applyRelease(r){ if(r&&typeof r==='object') ['monthly','tenday','twentyday'].forEach(k=>{ if(r[k]&&typeof r[k]==='object') DATA[k]=r[k]; }); }
+function applyRelease(r){
+  if(!r||typeof r!=='object') return;
+  ['monthly','tenday','twentyday'].forEach(k=>{ if(r[k]&&typeof r[k]==='object') DATA[k]=r[k]; });
+  const nr=nextReleaseLabel(r), el=document.getElementById('nextRel'); if(nr&&el) el.textContent=nr;
+}
+// 최신 발표 블록의 date(YYYY.MM.DD)로 다음 발표 라벨 계산 — 1일 월간 → 11일 1~10일 → 21일 1~20일 → 익월 1일 월간
+function nextReleaseLabel(r){
+  const parse=s=>{ const m=/^(\d{4})\.(\d{2})\.(\d{2})$/.exec(s||''); return m?{y:+m[1],mo:+m[2],d:+m[3]}:null; };
+  const latest=['monthly','tenday','twentyday'].map(k=>r[k]&&parse(r[k].date)).filter(Boolean)
+    .sort((a,b)=>(b.y-a.y)||(b.mo-a.mo)||(b.d-a.d))[0];
+  if(!latest) return null;
+  const {y,mo,d}=latest;
+  if(d<11) return `${mo}월 1~10일 (${mo}/11·관세청)`;
+  if(d<21) return `${mo}월 1~20일 (${mo}/21·관세청)`;
+  return `${mo}월 (${mo===12?1:mo+1}/1·산업부)`;
+}
 const seriesOf = d => d.map(x=>x&&x.exp!=null?x.exp:null);
 
 async function hydrateFromApi(){
