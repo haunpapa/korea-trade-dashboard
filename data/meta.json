@@ -1,6 +1,7 @@
 {
- "generated_at": "2026-06-12T05:46:09",
- "end_yymm": "202605",
+ "generated_at": "2026-08-21T09:00:06+09:00",
+ "end_yymm": "202607",
  "months": 12,
+ "incremental": true,
  "source": "관세청 무역통계 API (HS 기준)"
 }

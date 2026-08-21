@@ -2,16 +2,16 @@
  "tab": "월간 동향",
  "tabDay": "1일 발표 · 산업부",
  "granularity": "full",
- "period": "2026년 5월",
+ "period": "2026년 7월",
  "status": "월간(관세청 HS 기준)",
  "src": "관세청 무역통계 API",
- "date": "2026-06-12",
+ "date": "2026-08-21",
  "totals": {
-  "exports": 878.0,
-  "exportsYoY": 53.4,
-  "imports": 607.7,
-  "importsYoY": 20.7,
-  "balance": 270.3,
+  "exports": 989.2,
+  "exportsYoY": 63.0,
+  "imports": 685.2,
+  "importsYoY": 26.4,
+  "balance": 304.0,
   "dailyAvg": null,
   "dailyAvgYoY": null
  },
@@ -21,24 +21,24 @@
    "items": [
     {
      "name": "반도체",
-     "value": 297.5,
-     "yoy": 150.8,
+     "value": 331.0,
+     "yoy": 163.5,
      "star": true
     },
     {
      "name": "컴퓨터(SSD)",
-     "value": 0.8,
-     "yoy": 33.3
+     "value": 1.2,
+     "yoy": 71.4
     },
     {
      "name": "무선통신기기",
-     "value": 7.2,
-     "yoy": 7.5
+     "value": 11.7,
+     "yoy": 120.8
     },
     {
      "name": "디스플레이",
-     "value": 13.4,
-     "yoy": 5.5
+     "value": 15.0,
+     "yoy": 0.7
     }
    ]
   },
@@ -47,23 +47,23 @@
    "items": [
     {
      "name": "자동차",
-     "value": 57.4,
-     "yoy": -6.7
+     "value": 62.0,
+     "yoy": 7.3
     },
     {
      "name": "자동차부품",
-     "value": 13.1,
-     "yoy": -6.4
+     "value": 16.5,
+     "yoy": 2.5
     },
     {
      "name": "이차전지",
-     "value": 6.9,
-     "yoy": 32.7
+     "value": 6.8,
+     "yoy": 17.2
     },
     {
      "name": "선박",
-     "value": 24.6,
-     "yoy": 16.0
+     "value": 30.7,
+     "yoy": 49.0
     }
    ]
   },
@@ -72,13 +72,13 @@
    "items": [
     {
      "name": "석유제품",
-     "value": 53.3,
-     "yoy": 53.2
+     "value": 56.6,
+     "yoy": 36.7
     },
     {
      "name": "석유화학",
-     "value": 45.1,
-     "yoy": 6.9
+     "value": 52.4,
+     "yoy": 11.7
     }
    ]
   },
@@ -87,18 +87,18 @@
    "items": [
     {
      "name": "일반기계",
-     "value": 117.5,
-     "yoy": 83.6
+     "value": 132.0,
+     "yoy": 86.7
     },
     {
      "name": "철강",
-     "value": 25.9,
-     "yoy": -3.0
+     "value": 30.3,
+     "yoy": 6.3
     },
     {
      "name": "비철금속",
-     "value": 16.8,
-     "yoy": 41.2
+     "value": 17.4,
+     "yoy": 24.3
     }
    ]
   },
@@ -107,28 +107,28 @@
    "items": [
     {
      "name": "바이오헬스",
-     "value": 8.3,
-     "yoy": 7.8
+     "value": 8.6,
+     "yoy": 48.3
     },
     {
      "name": "화장품",
-     "value": 9.9,
-     "yoy": 23.8
+     "value": 11.0,
+     "yoy": 35.8
     },
     {
      "name": "농수산식품",
      "value": 6.4,
-     "yoy": 14.3
+     "yoy": 8.5
     },
     {
      "name": "가전",
-     "value": 3.0,
-     "yoy": -33.3
+     "value": 3.9,
+     "yoy": -9.3
     },
     {
      "name": "섬유",
-     "value": 7.2,
-     "yoy": -11.1
+     "value": 7.9,
+     "yoy": 0.0
     }
    ]
   }
@@ -136,38 +136,38 @@
  "regions": [
   {
    "name": "중국",
-   "value": 188.9,
-   "yoy": 81.1
-  },
-  {
-   "name": "미국",
-   "value": 160.0,
-   "yoy": 59.5
+   "value": 216.6,
+   "yoy": 96.2
   },
   {
    "name": "아세안",
-   "value": 158.8,
-   "yoy": 58.6
+   "value": 188.0,
+   "yoy": 73.6
   },
   {
-   "name": "대만",
-   "value": 66.7,
-   "yoy": 76.9
-  },
-  {
-   "name": "홍콩",
-   "value": 64.7,
-   "yoy": 126.2
+   "name": "미국",
+   "value": 174.7,
+   "yoy": 69.1
   },
   {
    "name": "EU",
-   "value": 57.0,
-   "yoy": 0.7
+   "value": 90.9,
+   "yoy": 59.2
+  },
+  {
+   "name": "홍콩",
+   "value": 66.5,
+   "yoy": 183.0
+  },
+  {
+   "name": "대만",
+   "value": 56.8,
+   "yoy": 22.2
   },
   {
    "name": "일본",
-   "value": 26.7,
-   "yoy": 12.7
+   "value": 27.5,
+   "yoy": 10.9
   }
  ]
 }
