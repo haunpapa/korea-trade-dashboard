@@ -256,7 +256,11 @@
    "dailyAvg": null,
    "dailyAvgYoY": null
   },
-  "semiShare": null,
+  "semiShare": {
+   "value": 47.2,
+   "label": "반도체 수출 비중",
+   "note": "전체 수출의 47.2% (전년동기비 +22.5%p). 반도체 수출 +198.8%로 동기간 역대최대. (비중은 언론 교차확인: hankyung/news1)"
+  },
   "items": [
    {
     "name": "반도체",
