@@ -1,6 +1,6 @@
 {
- "generated_at": "2026-08-17T15:16:44+09:00",
- "source_url": "https://eiec.kdi.re.kr/policy/materialView.do?num=285282 (관세청 2026.8.11 · 8월 1~10일 수출입현황 잠정치) · 교차확인 newsis.com / hankyung.com / mk.co.kr",
+ "generated_at": "2026-08-21T21:46:49+09:00",
+ "source_url": "https://eiec.kdi.re.kr/policy/materialView.do?num=285647&pg=&pp=&device=&search_txt=&topic=&type=A&depth1=&depth2=",
  "monthly": {
   "tab": "월간 동향",
   "tabDay": "1일 발표 · 산업부",
@@ -243,68 +243,85 @@
   "tab": "1~20일 속보",
   "tabDay": "21일 발표 · 관세청",
   "granularity": "partial",
-  "period": "2026년 7월 1~20일",
+  "period": "2026년 8월 1~20일",
   "status": "순별 잠정",
   "src": "관세청",
-  "date": "2026.07.21",
+  "date": "2026.08.21",
   "totals": {
-   "exports": 549.3,
-   "exportsYoY": 52.3,
-   "imports": 427.2,
-   "importsYoY": 20.0,
-   "balance": 122.2,
-   "dailyAvg": 37.9,
-   "dailyAvgYoY": 62.9
+   "exports": 552.0,
+   "exportsYoY": 56.0,
+   "imports": 412.0,
+   "importsYoY": 19.0,
+   "balance": 140.0,
+   "dailyAvg": null,
+   "dailyAvgYoY": null
   },
-  "semiShare": {
-   "value": 40.3,
-   "label": "반도체 수출 비중",
-   "note": "전체 수출의 40.3% (전년동기비 +18.4%p). 반도체 221.1억 달러(+180.6%)로 동기간 역대최대."
-  },
+  "semiShare": null,
   "items": [
    {
     "name": "반도체",
-    "value": 221.1,
-    "yoy": 180.6,
-    "star": true
-   },
-   {
-    "name": "컴퓨터주변기기",
     "value": null,
-    "yoy": 231.9
-   },
-   {
-    "name": "선박",
-    "value": null,
-    "yoy": 70.8
-   },
-   {
-    "name": "무선통신기기",
-    "value": null,
-    "yoy": 65.9
+    "yoy": 198.8,
+    "star": true,
+    "est": null,
+    "valuePrefix": null,
+    "tag": null
    },
    {
     "name": "석유제품",
     "value": null,
-    "yoy": 33.4
+    "yoy": 56.4,
+    "star": null,
+    "est": null,
+    "valuePrefix": null,
+    "tag": null
    },
    {
-    "name": "철강제품",
+    "name": "컴퓨터 주변기기",
     "value": null,
-    "yoy": 11.1
+    "yoy": 242.1,
+    "star": null,
+    "est": null,
+    "valuePrefix": null,
+    "tag": null
    },
    {
     "name": "승용차",
     "value": null,
-    "yoy": -10.6
-   },
-   {
-    "name": "자동차부품",
-    "value": null,
-    "yoy": -9.6
+    "yoy": -45.1,
+    "star": null,
+    "est": null,
+    "valuePrefix": null,
+    "tag": null
    }
   ],
-  "regions": [],
-  "note": "1~20일 누계 잠정치(수출 549.3억 +52.3%, 7월 동기간 역대최대). 조업일수 14.5일(전년 15.5일)로 하루 적었으나 일평균 37.9억(+62.9%). 국가별 수출 중국 +94.1%·베트남 +82.4%·미국 +39.6%·EU +30.3%·홍콩 +123.7%. 절대금액은 총괄·반도체 위주로 공개되어 그 외 품목은 증감률 중심."
+  "regions": [
+   {
+    "name": "중국",
+    "value": null,
+    "yoy": 118.6
+   },
+   {
+    "name": "미국",
+    "value": null,
+    "yoy": 59.4
+   },
+   {
+    "name": "베트남",
+    "value": null,
+    "yoy": 67.4
+   },
+   {
+    "name": "홍콩",
+    "value": null,
+    "yoy": 245.5
+   },
+   {
+    "name": "유럽연합",
+    "value": null,
+    "yoy": -3.2
+   }
+  ],
+  "note": "관세청은 2026년 8월 21일(금) 8월 1일~20일 기간의 수출입 현황 잠정치를 발표했다. 수출은 552억 달러로 전년동기대비 56.0% 증가하였으며, 반도체(198.8%), 컴퓨터 주변기기(242.1%), 홍콩(245.5%) 등에서 높은 증가세를 보였다. 수입은 412억 달러로 19.0% 증가하여 무역수지는 140억 달러 흑자를 기록했다."
  }
 }
