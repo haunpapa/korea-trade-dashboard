@@ -218,3 +218,44 @@ def test_twentyday_all_null_semishare_becomes_none():
     out = parse_release_text("본문", "twentyday", client=FakeClient(json.dumps({"twentyday": block})))["twentyday"]
 
     assert out["semiShare"] is None
+
+
+# ---------------------------------------------------------------------------
+# 라이브 회귀(2026-08-21, run 32483278832): 부분 null semiShare + regions 의 미지 키
+# ---------------------------------------------------------------------------
+def test_semishare_with_null_value_becomes_none_even_if_label_present():
+    """semiShare.value 가 null 이면 label/note 가 있어도 객체 전체를 None 으로."""
+    from app.release_parse import parse_release_text
+
+    block = {**_valid_block_for("twentyday"),
+             "semiShare": {"value": None, "label": "반도체 수출 비중", "note": "기사에 없음"}}
+    out = parse_release_text("본문", "twentyday", client=FakeClient(json.dumps({"twentyday": block})))["twentyday"]
+    assert out["semiShare"] is None
+
+
+def test_workdays_with_null_now_becomes_none():
+    from app.release_parse import parse_release_text
+
+    block = {**_valid_block_for("tenday"), "workdays": {"now": None, "prev": 7.0}}
+    out = parse_release_text("본문", "tenday", client=FakeClient(json.dumps({"tenday": block})))["tenday"]
+    assert out["workdays"] is None
+
+
+def test_unknown_keys_stripped_from_items_and_regions():
+    """LLM 이 items/regions 항목에 스키마 밖 키(type 등)를 붙여도 알려진 키만 남긴다."""
+    from app.release_parse import parse_release_text
+
+    block = {**_valid_block_for("twentyday"),
+             "items": [{"name": "반도체", "value": 1.0, "yoy": 2.0, "type": "exports", "rank": 1}],
+             "regions": [{"name": "중국", "value": 3.0, "yoy": 4.0, "type": "exports"}]}
+    out = parse_release_text("본문", "twentyday", client=FakeClient(json.dumps({"twentyday": block})))["twentyday"]
+    assert "type" not in out["items"][0] and "rank" not in out["items"][0]
+    assert out["regions"][0] == {"name": "중국", "value": 3.0, "yoy": 4.0}
+
+
+@pytest.mark.parametrize("kind", ["tenday", "twentyday"])
+def test_template_regions_show_example_shape(kind):
+    """regions 가 빈 배열이면 모델이 모양을 지어내므로 템플릿엔 예시 항목이 있어야 한다."""
+    from app.release_templates import TEMPLATES
+    assert TEMPLATES[kind]["regions"], f"{kind} 템플릿 regions 가 비어 있음"
+    assert set(TEMPLATES[kind]["regions"][0]) <= {"name", "value", "yoy"}

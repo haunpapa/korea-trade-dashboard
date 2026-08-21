@@ -19,6 +19,12 @@ _TOTALS = {
     "dailyAvg": 30.4, "dailyAvgYoY": 45.3,
 }
 
+# 순별 regions 예시 — 기사에 국가별 절대금액이 없으면 빈 배열로 답하도록 프롬프트 규칙과 짝
+_REGION_EXAMPLES = [
+    {"name": "중국", "value": 67.5, "yoy": 134.8},
+    {"name": "미국", "value": 20.5, "yoy": -0.2},
+]
+
 _ITEM_EXAMPLES = [
     {"name": "반도체", "value": 99.5, "yoy": 155.4, "star": True},
     {"name": "석유제품", "value": 20.0, "yoy": 65.3},
@@ -81,7 +87,7 @@ TEMPLATES: dict[str, dict] = {
         "totals": _TOTALS,
         "workdays": {"now": 7.0, "prev": 7.0},
         "items": _ITEM_EXAMPLES,
-        "regions": [],
+        "regions": _REGION_EXAMPLES,
         "note": "발표일·조업일수·반도체 비중·주요 국가 증감률을 담은 2~3문장 해설",
     },
     "twentyday": {
@@ -95,7 +101,7 @@ TEMPLATES: dict[str, dict] = {
             "note": "전체 수출의 40.3% (전년동기비 +18.4%p). 반도체 221.1억 달러(+180.6%).",
         },
         "items": _ITEM_EXAMPLES,
-        "regions": [],
+        "regions": _REGION_EXAMPLES,
         "note": "발표일·조업일수·주요 국가 증감률을 담은 2~3문장 해설",
     },
 }
@@ -126,19 +132,47 @@ def overlay_header(kind: str, block: dict) -> dict:
     return {**block, **HEADER_CONST[kind]}
 
 
-# 값이 전부 null 이면 객체 자체를 None 으로 떨어뜨릴 선택 필드 (대시보드는 falsy 면 해당 카드 생략)
-_NULLABLE_OBJECTS: dict[str, tuple[str, ...]] = {
-    "monthly": (),
-    "tenday": ("workdays",),
-    "twentyday": ("semiShare",),
+# 필수 수치가 null 이면 객체 자체를 None 으로 떨어뜨릴 선택 필드 (대시보드는 falsy 면 해당 카드 생략)
+# {블록: {키: 필수 필드들}} — 기사에 해당 수치가 없으면 모델이 value/now 를 null 로 내기 때문
+_NULLABLE_OBJECTS: dict[str, dict[str, tuple[str, ...]]] = {
+    "monthly": {},
+    "tenday": {"workdays": ("now", "prev")},
+    "twentyday": {"semiShare": ("value",)},
 }
+
+# 리스트 항목에서 허용하는 키 — 모델이 type/rank 같은 키를 지어내는 것을 걸러냄(extra=forbid 스키마 보호)
+_ITEM_KEYS = frozenset({"name", "value", "yoy", "star", "est", "valuePrefix", "tag"})
+_REGION_KEYS = frozenset({"name", "value", "yoy"})
+
+
+def _clean_entries(entries: object, allowed: frozenset[str]) -> object:
+    if not isinstance(entries, list):
+        return entries
+    return [
+        {k: v for k, v in e.items() if k in allowed} if isinstance(e, dict) else e
+        for e in entries
+    ]
 
 
 def normalize_optional_objects(kind: str, block: dict) -> dict:
-    """선택 중첩 객체의 값이 모두 null 이면 그 키를 None 으로 바꾼 새 dict를 반환한다(입력 불변)."""
+    """LLM 블록을 스키마에 맞게 손질한 새 dict를 반환한다(입력 불변).
+
+    - 선택 중첩 객체(workdays/semiShare)는 필수 수치가 null 이면 None 으로.
+    - items/regions(및 monthly groups 내 items) 항목은 알려진 키만 남긴다.
+    """
     out = dict(block)
-    for key in _NULLABLE_OBJECTS[kind]:
+    for key, required in _NULLABLE_OBJECTS[kind].items():
         obj = out.get(key)
-        if isinstance(obj, dict) and all(v is None for v in obj.values()):
+        if isinstance(obj, dict) and any(obj.get(f) is None for f in required):
             out[key] = None
+    out["items"] = _clean_entries(out.get("items"), _ITEM_KEYS) if "items" in out else out.get("items")
+    if "items" not in block:
+        out.pop("items", None)
+    if isinstance(out.get("regions"), list):
+        out["regions"] = _clean_entries(out["regions"], _REGION_KEYS)
+    if isinstance(out.get("groups"), list):
+        out["groups"] = [
+            {**g, "items": _clean_entries(g.get("items"), _ITEM_KEYS)} if isinstance(g, dict) else g
+            for g in out["groups"]
+        ]
     return out

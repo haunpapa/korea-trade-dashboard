@@ -12,8 +12,9 @@ name: Release auto-update
 
 on:
   schedule:
-    # cron은 UTC. 00~04시 UTC = 09~13시 KST, 매월 1·11·21일 매시 정각
-    - cron: '0 0-4 1,11,21 * *'
+    # cron은 UTC. 00~08시 UTC = 09~17시 KST, 매월 1·11·21일 매시 정각
+    # (EIEC 게재가 오후로 밀리는 날이 있어 창을 17시까지 — 2026-08-21 관측)
+    - cron: '0 0-8 1,11,21 * *'
   workflow_dispatch:
     inputs:
       date:

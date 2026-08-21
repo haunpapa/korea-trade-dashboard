@@ -56,6 +56,8 @@ SYSTEM_PROMPT: str = (
     "7. period는 '2026년 8월 1~10일'처럼, date는 발표일을 'YYYY.MM.DD'로, "
     "금액은 억 달러 소수 첫째 자리까지 기재하십시오. items/groups/regions는 기사에 있는 "
     "항목만 넣고 없는 절대금액은 value: null 로 두십시오.\n"
+    "8. regions/items 항목에는 템플릿에 있는 키(name, value, yoy 등)만 사용하고 다른 키를 "
+    "추가하지 마십시오. 기사에 국가별 수치가 아예 없으면 regions 는 빈 배열 []로 두십시오.\n"
 )
 
 
