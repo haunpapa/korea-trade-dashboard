@@ -25,7 +25,7 @@ import httpx
 from . import aggregate, fx
 from .config import Settings, get_settings
 from .customs import CustomsClient
-from .incremental import missing_months, stitch_series, stitch_series_map
+from .incremental import missing_months, months_with_null, stitch_series, stitch_series_map
 from .mappings import REGION_NAMES, SECTOR_BUCKETS, SECTOR_GROUPS
 
 logger = logging.getLogger(__name__)
@@ -86,9 +86,9 @@ async def collect(
     else:
         assert prior is not None
         need = missing_months(prior.get("trend.json"), seq)
-        if refresh_recent > 0:
-            tail = seq[-refresh_recent:]
-            need = [ym for ym in seq if ym in need or ym in tail]
+        fx_null = months_with_null(prior.get("fx.json"), seq, "rate")
+        tail = seq[-refresh_recent:] if refresh_recent > 0 else []
+        need = [ym for ym in seq if ym in need or ym in tail or ym in fx_null]
         logger.info("증분 수집: 재사용 %d개월, 신규 %s", len(seq) - len(need), need or "없음")
         fresh = {ym: await _build_month(client, ym) for ym in need}
         trend = stitch_series(prior.get("trend.json"), {ym: f["trend"] for ym, f in fresh.items()}, seq)

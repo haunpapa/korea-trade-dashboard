@@ -26,6 +26,15 @@ def missing_months(prior: Series | None, seq: list[str]) -> list[str]:
     return [ym for ym in seq if label(ym) not in have]
 
 
+def months_with_null(prior: Series | None, seq: list[str], field: str) -> list[str]:
+    """seq 중 prior 에 달은 있으나 해당 필드가 null 인 달 목록 — 나중에 키/데이터가 생기면 재수집.
+
+    (예: EXIM_API_KEY 없이 수집된 달은 fx rate 가 null — 키 추가 후 이 달만 다시 긁는다.)
+    """
+    by_label = {p.get("m"): p for p in (prior or [])}
+    return [ym for ym in seq if label(ym) in by_label and by_label[label(ym)].get(field) is None]
+
+
 def stitch_series(prior: Series | None, fresh: dict[str, Point], seq: list[str]) -> Series:
     """창(seq) 순서대로 시계열을 조립한다. fresh(YYYYMM→포인트) 우선, 없으면 prior, 둘 다 없으면 null 포인트.
 

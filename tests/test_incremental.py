@@ -184,3 +184,24 @@ def test_load_prior_reads_outdir_or_none(tmp_path):
     assert prior["trend.json"][0]["m"] == "26.05" and prior["meta.json"]["end_yymm"] == "202605"
     (tmp_path / "trend.json").write_text("not json", encoding="utf-8")
     assert load_prior(tmp_path) is None
+
+
+def test_months_with_null_field():
+    from app.incremental import months_with_null
+    fx = [{"m": "26.05", "rate": 1491.8}, {"m": "26.06", "rate": None}, {"m": "26.07", "rate": None}]
+    seq = ["202605", "202606", "202607"]
+    assert months_with_null(fx, seq, "rate") == ["202606", "202607"]
+    assert months_with_null(None, seq, "rate") == []
+
+
+async def test_collect_incremental_rebuilds_months_with_null_fx(recorded_builders):
+    """prior 가 달로는 완전해도 fx rate 가 null 인 달은 재수집한다(EXIM 키 나중 추가 대응)."""
+    calls, ex, *_ = recorded_builders
+    from app.aggregate import month_seq
+    months = month_seq("202607", 12)
+    prior = _prior_files(months)
+    prior["fx.json"] = [{"m": label(ym), "rate": None if ym in ("202606", "202607") else 1300.0}
+                        for ym in months]
+    data = await ex.collect(object(), "202607", 12, prior=prior)
+    assert sorted(c[1] for c in calls if c[0] == "trend") == ["202606", "202607"]
+    assert [p["rate"] for p in data["fx.json"][-2:]] == [1400.0, 1400.0]
