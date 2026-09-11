@@ -1,6 +1,6 @@
 {
- "generated_at": "2026-08-21T21:46:49+09:00",
- "source_url": "https://eiec.kdi.re.kr/policy/materialView.do?num=285647&pg=&pp=&device=&search_txt=&topic=&type=A&depth1=&depth2=",
+ "generated_at": "2026-09-11T21:30:24+09:00",
+ "source_url": "https://eiec.kdi.re.kr/policy/materialView.do?num=286714&pg=&pp=&device=&search_txt=&topic=&type=A&depth1=&depth2=",
  "monthly": {
   "tab": "월간 동향",
   "tabDay": "1일 발표 · 산업부",
@@ -175,69 +175,67 @@
   "tab": "1~10일 속보",
   "tabDay": "11일 발표 · 관세청",
   "granularity": "partial",
-  "period": "2026년 8월 1~10일",
-  "status": "순별 잠정 · 최신",
+  "period": "2026년 9월 1~10일",
+  "status": "순별 잠정",
   "src": "관세청",
-  "date": "2026.08.11",
+  "date": "2026.09.11",
   "totals": {
-   "exports": 212.9,
-   "exportsYoY": 45.3,
-   "imports": 195.0,
-   "importsYoY": 23.1,
-   "balance": 18.0,
-   "dailyAvg": 30.4,
-   "dailyAvgYoY": 45.3
+   "exports": 350.0,
+   "exportsYoY": 82.6,
+   "imports": 246.0,
+   "importsYoY": 20.7,
+   "balance": 104.0,
+   "dailyAvg": null,
+   "dailyAvgYoY": null
   },
-  "workdays": {
-   "now": 7.0,
-   "prev": 7.0
-  },
+  "workdays": null,
   "items": [
    {
     "name": "반도체",
-    "value": 99.5,
-    "yoy": 155.4,
+    "value": null,
+    "yoy": 270.1,
     "star": true,
-    "tag": "8월 초순 역대 최대"
+    "est": null,
+    "valuePrefix": null,
+    "tag": null
    },
    {
     "name": "석유제품",
-    "value": 20.0,
-    "yoy": 65.3
-   },
-   {
-    "name": "컴퓨터주변기기",
-    "value": 5.9,
-    "yoy": 139.5
-   },
-   {
-    "name": "철강제품",
     "value": null,
-    "yoy": 4.3
-   },
-   {
-    "name": "무선통신기기",
-    "value": null,
-    "yoy": -9.1
-   },
-   {
-    "name": "자동차부품",
-    "value": null,
-    "yoy": -36.3
-   },
-   {
-    "name": "선박",
-    "value": null,
-    "yoy": -58.2
+    "yoy": 57.0,
+    "star": null,
+    "est": null,
+    "valuePrefix": null,
+    "tag": null
    },
    {
     "name": "승용차",
     "value": null,
-    "yoy": -80.9
+    "yoy": 10.0,
+    "star": null,
+    "est": null,
+    "valuePrefix": null,
+    "tag": null
    }
   ],
-  "regions": [],
-  "note": "8/11 공개된 8월 초 10일 실적(8월 동기간 역대 최대). 조업일수 7.0일로 전년과 같아 일평균도 +45.3%(30.4억). 반도체 비중 46.8%(+20.1%p). 국가별 수출 중국 +134.8%·홍콩 +259.4%·EU +57.2%·베트남 +45.4%, 미국 −0.2%. 에너지 수입 −13.8%(원유 −16.9%, 가스 −10.0%). 품목 상세는 21일·월말 발표에서 보강."
+  "regions": [
+   {
+    "name": "중국",
+    "value": null,
+    "yoy": 103.0
+   },
+   {
+    "name": "미국",
+    "value": null,
+    "yoy": 137.5
+   },
+   {
+    "name": "대만",
+    "value": null,
+    "yoy": 176.0
+   }
+  ],
+  "note": "관세청은 2026년 9월 11일(금) 9월 1~10일 수출입 현황 잠정치를 발표하였다. 수출은 350억 달러(전년동기대비 +82.6%), 수입은 246억 달러(+20.7%), 무역수지는 104억 달러 흑자를 기록하였다. 반도체 수출 비중이 47.1%로 크게 확대되었으며, 중국(+103.0%), 미국(+137.5%), 대만(+176.0%) 등 상위 3개국 수출 비중이 51.9%에 달하였다."
  },
  "twentyday": {
   "tab": "1~20일 속보",
