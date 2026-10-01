@@ -2,10 +2,10 @@
  "tab": "월간 동향",
  "tabDay": "1일 발표 · 산업부",
  "granularity": "full",
- "period": "2026년 8월",
+ "period": "2026년 9월",
  "status": "월간(관세청 HS 기준)",
  "src": "관세청 무역통계 API",
- "date": "2026-09-30",
+ "date": "2026-10-01",
  "totals": {
   "exports": 0.0,
   "exportsYoY": -100.0,
