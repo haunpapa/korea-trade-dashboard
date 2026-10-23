@@ -1,6 +1,6 @@
 {
- "generated_at": "2026-08-21T21:46:49+09:00",
- "source_url": "https://eiec.kdi.re.kr/policy/materialView.do?num=285647&pg=&pp=&device=&search_txt=&topic=&type=A&depth1=&depth2=",
+ "generated_at": "2026-10-21T17:11:38+09:00",
+ "source_url": "https://eiec.kdi.re.kr/policy/materialView.do?num=288360&pg=&pp=&device=&search_txt=&topic=&type=A&depth1=&depth2=",
  "monthly": {
   "tab": "월간 동향",
   "tabDay": "1일 발표 · 산업부",
@@ -243,29 +243,25 @@
   "tab": "1~20일 속보",
   "tabDay": "21일 발표 · 관세청",
   "granularity": "partial",
-  "period": "2026년 8월 1~20일",
+  "period": "2026년 10월 1~20일",
   "status": "순별 잠정",
   "src": "관세청",
-  "date": "2026.08.21",
+  "date": "2026.10.21",
   "totals": {
-   "exports": 552.0,
-   "exportsYoY": 56.0,
-   "imports": 412.0,
-   "importsYoY": 19.0,
-   "balance": 140.0,
-   "dailyAvg": null,
+   "exports": 616.0,
+   "exportsYoY": 105.4,
+   "imports": 471.0,
+   "importsYoY": 42.8,
+   "balance": 145.0,
+   "dailyAvg": 47.4,
    "dailyAvgYoY": null
   },
-  "semiShare": {
-   "value": 47.2,
-   "label": "반도체 수출 비중",
-   "note": "전체 수출의 47.2% (전년동기비 +22.5%p). 반도체 수출 +198.8%로 동기간 역대최대. (비중은 언론 교차확인: hankyung/news1)"
-  },
+  "semiShare": null,
   "items": [
    {
     "name": "반도체",
     "value": null,
-    "yoy": 198.8,
+    "yoy": 222.5,
     "star": true,
     "est": null,
     "valuePrefix": null,
@@ -274,16 +270,7 @@
    {
     "name": "석유제품",
     "value": null,
-    "yoy": 56.4,
-    "star": null,
-    "est": null,
-    "valuePrefix": null,
-    "tag": null
-   },
-   {
-    "name": "컴퓨터 주변기기",
-    "value": null,
-    "yoy": 242.1,
+    "yoy": 68.3,
     "star": null,
     "est": null,
     "valuePrefix": null,
@@ -292,7 +279,16 @@
    {
     "name": "승용차",
     "value": null,
-    "yoy": -45.1,
+    "yoy": 40.9,
+    "star": null,
+    "est": null,
+    "valuePrefix": null,
+    "tag": null
+   },
+   {
+    "name": "컴퓨터 주변기기",
+    "value": null,
+    "yoy": 424.0,
     "star": null,
     "est": null,
     "valuePrefix": null,
@@ -303,29 +299,19 @@
    {
     "name": "중국",
     "value": null,
-    "yoy": 118.6
+    "yoy": 154.4
    },
    {
     "name": "미국",
     "value": null,
-    "yoy": 59.4
+    "yoy": 154.9
    },
    {
     "name": "베트남",
     "value": null,
-    "yoy": 67.4
-   },
-   {
-    "name": "홍콩",
-    "value": null,
-    "yoy": 245.5
-   },
-   {
-    "name": "유럽연합",
-    "value": null,
-    "yoy": -3.2
+    "yoy": 74.6
    }
   ],
-  "note": "관세청은 2026년 8월 21일(금) 8월 1일~20일 기간의 수출입 현황 잠정치를 발표했다. 수출은 552억 달러로 전년동기대비 56.0% 증가하였으며, 반도체(198.8%), 컴퓨터 주변기기(242.1%), 홍콩(245.5%) 등에서 높은 증가세를 보였다. 수입은 412억 달러로 19.0% 증가하여 무역수지는 140억 달러 흑자를 기록했다."
+  "note": "관세청은 2026년 10월 21일(수) 10월 1일~20일 수출입 현황 잠정치를 발표했다. 수출 616억 달러(+105.4%), 수입 471억 달러(+42.8%)로 무역수지 145억 달러 흑자를 기록했으며, 일평균 수출액 47.4억 달러도 역대최대였다. 수출은 중국(+154.4%), 미국(+154.9%), 베트남(+74.6%) 등 주요 시장에서 모두 큰 폭으로 증가했다."
  }
 }
