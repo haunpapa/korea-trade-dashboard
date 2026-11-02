@@ -8,7 +8,7 @@ Public API
 ----------
 - SourceError                       — 수집·파싱 실패 예외
 - detect_kind(d: date) -> str       — 날짜로 발표 구분 추론
-- pick_latest_article(list_html, kind, base_url) -> str | None
+- pick_latest_article(list_html, target, base_url) -> str | None
 - extract_body(article_html: str) -> str
 - fetch_body(url, *, client, timeout) -> str
 """
@@ -22,6 +22,7 @@ from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
+from app.release_period import ReleaseTarget
 
 # ---------------------------------------------------------------------------
 # 예외
@@ -67,67 +68,26 @@ def detect_kind(d: datetime.date) -> str:
 # 기사 목록 페이지에서 최신 기사 URL 선택
 # ---------------------------------------------------------------------------
 
-# 기간 패턴: "1일 ~ N월 10일", "1~10일", "1~20일", "20일 수출입 현황" 등
-# 공백·물결 부호(~∼〜) 변형에 관대하게 매칭한다.
-_TILDE = r"[~∼〜\s]+"
-
-# monthly: "2026년 N월 수출입 동향/현황" — 일(日) 범위 없이 월 단위만
-# (산업부 월간은 '수출입 동향', 관세청 월간은 '수출입 현황' → 둘 다 허용)
-_MONTHLY_RE = re.compile(
-    r"\d{4}년\s*\d{1,2}월\s+수출입\s*(?:동향|현황)",
-    re.IGNORECASE,
-)
-# tenday: "1일 ~ N월 10일" 또는 "1~10일"
-_TENDAY_RE = re.compile(
-    r"1일?" + _TILDE + r"(?:\d{1,2}월\s*)?10일",
-    re.IGNORECASE,
-)
-# twentyday: "1~20일" 또는 "20일 수출입 현황"
-_TWENTYDAY_RE = re.compile(
-    r"(?:1일?" + _TILDE + r"(?:\d{1,2}월\s*)?20일|20일\s+수출입\s*현황)",
-    re.IGNORECASE,
-)
-
-_KIND_PATTERNS: dict[str, re.Pattern] = {
-    "monthly": _MONTHLY_RE,
-    "tenday": _TENDAY_RE,
-    "twentyday": _TWENTYDAY_RE,
-}
-
-# monthly 패턴이 오탐하지 않도록: 일(日) 범위를 포함하는 텍스트는 monthly에서 제외
-_DAY_RANGE_RE = re.compile(r"\d+일\s*[~∼〜]")
-
-
-def pick_latest_article(list_html: str, kind: str, base_url: str) -> str | None:
-    """목록 페이지 HTML에서 해당 kind 기사의 첫 번째 절대 URL을 반환한다.
+def pick_latest_article(list_html: str, target: ReleaseTarget, base_url: str) -> str | None:
+    """목록 페이지 HTML에서 요청 회차 기사의 첫 번째 절대 URL을 반환한다.
 
     Args:
         list_html: 기사 목록 페이지 HTML 문자열.
-        kind:      "monthly" | "tenday" | "twentyday".
+        target:    요청된 발표 구분과 기준일. 이전 회차 기사는 선택하지 않는다.
         base_url:  상대 경로를 절대 URL로 변환할 기준 URL.
 
     Returns:
         첫 번째 매칭 앵커의 절대 URL, 없으면 None.
     """
     soup = BeautifulSoup(list_html, "lxml")
-    pattern = _KIND_PATTERNS.get(kind)
-    if pattern is None:
-        raise SourceError(f"알 수 없는 kind: {kind!r}")
-
-    for a in soup.find_all("a", href=True):
-        text = a.get_text(strip=True)
-
-        # "수출입 현황"(관세청 순별) 또는 "수출입 동향"(산업부 월간)이 없으면 건너뜀
-        if "수출입 현황" not in text and "수출입 동향" not in text:
-            continue
-
-        # monthly는 일(日) 범위가 없어야 함
-        if kind == "monthly" and _DAY_RANGE_RE.search(text):
-            continue
-
-        if pattern.search(text):
-            href = a["href"]
-            return urllib.parse.urljoin(base_url, href)
+    articles = soup.select('a[href*="materialView.do?"]')
+    if not articles:
+        raise SourceError("유효한 EIEC 목록이 아닙니다 (기사 링크 없음). 차단 응답/목록 구조를 확인하세요.")
+    for a in articles:
+        text = a.get_text(" ", strip=True)
+        compact = re.sub(r"\s+", "", text)
+        if re.search(r"수출입(?:현황|동향)", compact) and target.matches_period(text):
+            return urllib.parse.urljoin(base_url, a["href"])
 
     return None
 

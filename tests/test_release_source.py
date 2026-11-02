@@ -9,6 +9,7 @@ from pathlib import Path
 import httpx
 import pytest
 
+from app.release_period import ReleaseTarget
 from app.release_source import (
     SourceError,
     detect_kind,
@@ -82,7 +83,7 @@ def test_pick_latest_article_twentyday():
     """twentyday kind에 맞는 기사 앵커의 절대 URL을 반환한다."""
     html = _read_fixture("eiec_list.html")
     base = "https://eiec.kdi.re.kr"
-    url = pick_latest_article(html, "twentyday", base)
+    url = pick_latest_article(html, ReleaseTarget("twentyday", datetime.date(2026, 6, 21)), base)
 
     assert url is not None
     assert "materialView" in url
@@ -93,7 +94,7 @@ def test_pick_latest_article_tenday():
     """tenday kind에 맞는 기사(1~10일) 앵커의 절대 URL을 반환한다."""
     html = _read_fixture("eiec_list.html")
     base = "https://eiec.kdi.re.kr"
-    url = pick_latest_article(html, "tenday", base)
+    url = pick_latest_article(html, ReleaseTarget("tenday", datetime.date(2026, 6, 11)), base)
 
     assert url is not None
     assert "materialView" in url
@@ -108,7 +109,7 @@ def test_pick_latest_article_monthly_returns_none():
     """픽스처에 monthly 기사가 없으면 None을 반환한다."""
     html = _read_fixture("eiec_list.html")
     base = "https://eiec.kdi.re.kr"
-    url = pick_latest_article(html, "monthly", base)
+    url = pick_latest_article(html, ReleaseTarget("monthly", datetime.date(2026, 6, 1)), base)
 
     assert url is None
 
@@ -240,18 +241,18 @@ _LIVE_LIST_HTML = """
 
 
 def test_live_format_twentyday_matches_real_title():
-    url = pick_latest_article(_LIVE_LIST_HTML, "twentyday", _LIVE_BASE)
+    url = pick_latest_article(_LIVE_LIST_HTML, ReleaseTarget("twentyday", datetime.date(2026, 6, 21)), _LIVE_BASE)
     assert url is not None
     assert "materialView.do?num=282993" in url
     assert url.startswith("https://eiec.kdi.re.kr/policy/")
 
 
 def test_live_format_tenday_matches_real_title():
-    url = pick_latest_article(_LIVE_LIST_HTML, "tenday", _LIVE_BASE)
+    url = pick_latest_article(_LIVE_LIST_HTML, ReleaseTarget("tenday", datetime.date(2026, 6, 11)), _LIVE_BASE)
     assert url is not None and "num=282517" in url
 
 
 def test_live_format_monthly_matches_donghyang_title():
     # 산업부 월간은 '수출입 동향' — 게이트·패턴이 동향을 허용해야 함
-    url = pick_latest_article(_LIVE_LIST_HTML, "monthly", _LIVE_BASE)
+    url = pick_latest_article(_LIVE_LIST_HTML, ReleaseTarget("monthly", datetime.date(2026, 6, 1)), _LIVE_BASE)
     assert url is not None and "num=281941" in url

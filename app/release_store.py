@@ -10,10 +10,11 @@ from __future__ import annotations
 
 import datetime
 import json
-from datetime import timezone, timedelta
+from datetime import timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from app.release_period import period_month
 
 # ---------------------------------------------------------------------------
 # 내부 헬퍼
@@ -71,6 +72,7 @@ def merge_release_block(
 
     if source_url is not None:
         merged["source_url"] = source_url
+        merged["source_urls"] = {**existing.get("source_urls", {}), kind: source_url}
     else:
         # source_url이 None으로 전달된 경우 기존 키를 제거하지 않음
         # (이전 병합에서 설정된 source_url은 유지)
@@ -111,6 +113,12 @@ def block_changed(path, kind: str, block: dict) -> bool:
     old = existing[kind]
     if old == block:
         return False
+
+    if isinstance(old, dict):
+        old_month = period_month(old.get("period", ""))
+        new_month = period_month(block.get("period", ""))
+        if old_month is not None and new_month is not None and new_month < old_month:
+            return False
 
     # 다운그레이드 방지: 같은 period 를 더 빈약하게(non-null 값이 더 적게) 재파싱한 결과는
     # 큐레이션된 기존 블록을 덮어쓰지 않는다. 새 회차(period 다름)·보강(값 증가)·정정(개수 동일)은 인정.

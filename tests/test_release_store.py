@@ -1,9 +1,6 @@
 """test_release_store.py — release_store 모듈 단위 테스트 (TDD: 먼저 작성)."""
 
 import json
-from pathlib import Path
-
-import pytest
 
 from app.release_store import block_changed, merge_release_block
 
@@ -235,3 +232,27 @@ def test_block_changed_true_when_same_period_and_richer(tmp_path):
 
     richer = {**sparse, "items": [{"name": "반도체", "value": 99.5, "yoy": 155.4}]}
     assert block_changed(path, "tenday", richer) is True
+
+
+def test_block_changed_rejects_older_month(tmp_path):
+    path = tmp_path / "release.json"
+    current = {**_SAMPLE_BLOCK, "period": "2026년 10월 1~20일"}
+    merge_release_block(path, "twentyday", current)
+    older = {**_SAMPLE_BLOCK, "period": "2026년 9월 1~20일"}
+    assert block_changed(path, "twentyday", older) is False
+
+
+def test_sources_survive_updates_of_other_release_kinds(tmp_path):
+    path = tmp_path / "release.json"
+    merge_release_block(path, "monthly", _SAMPLE_BLOCK, source_url="https://example.org/monthly")
+    result = merge_release_block(path, "twentyday", _SAMPLE_BLOCK, source_url="https://example.org/twentyday")
+    assert result["source_urls"] == {
+        "monthly": "https://example.org/monthly",
+        "twentyday": "https://example.org/twentyday",
+    }
+
+
+def test_block_changed_accepts_previously_empty_kind(tmp_path):
+    path = tmp_path / "release.json"
+    path.write_text('{"twentyday": null}', encoding="utf-8")
+    assert block_changed(path, "twentyday", _SAMPLE_BLOCK) is True

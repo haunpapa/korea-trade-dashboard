@@ -1,0 +1,33 @@
+name: Validate dashboard
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install test dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Run regression tests
+        run: python -m pytest -q
+      - name: Validate published release data
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from app.release_schema import validate_release
+
+          data = json.loads(Path('data/release.json').read_text(encoding='utf-8'))
+          validate_release({kind: data[kind] for kind in ('monthly', 'tenday', 'twentyday')})
+          PY

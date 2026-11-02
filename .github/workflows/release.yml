@@ -1,6 +1,6 @@
 # ───────────────────────────────────────────────────────────────
 #  발표 헤드라인 자동 갱신 — data/release.json
-#  매월 1·11·21일(KST 09~13시) KDI EIEC/뉴스에서 "수출입 현황" 수집
+#  매월 1~5·11~15·21~25일(KST 09~17시) KDI EIEC에서 발표 수집
 #  → Claude 파싱 → 스키마 검증 → 변경 시 자동 PR(사람이 1-클릭 머지)
 #
 #  필요 설정:
@@ -12,9 +12,8 @@ name: Release auto-update
 
 on:
   schedule:
-    # cron은 UTC. 00~08시 UTC = 09~17시 KST, 매월 1·11·21일 매시 정각
-    # (EIEC 게재가 오후로 밀리는 날이 있어 창을 17시까지 — 2026-08-21 관측)
-    - cron: '0 0-8 1,11,21 * *'
+    # cron은 UTC. 휴일·EIEC 게재 지연에 대비해 detect_kind의 허용일 동안 재시도한다.
+    - cron: '0 0-8 1-5,11-15,21-25 * *'
   workflow_dispatch:
     inputs:
       date:
@@ -25,6 +24,10 @@ on:
 permissions:
   contents: write
   pull-requests: write
+
+concurrency:
+  group: release-auto-update
+  cancel-in-progress: false
 
 jobs:
   fetch:
@@ -45,17 +48,24 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           RELEASE_SOURCE_LIST_URL: ${{ vars.RELEASE_SOURCE_LIST_URL }}
           RELEASE_DATE: ${{ inputs.date }}
-        # 성공(갱신/no-op)=exit0, 하드실패=exit2. 실패해도 PR 스텝까지는 진행하고
-        # (변경 없음 → no-op), 마지막 스텝에서 잡을 실패로 표시해 눈에 띄게 한다.
-        continue-on-error: true
-        run: python scripts/fetch_release.py ${RELEASE_DATE:+--date "$RELEASE_DATE"}
+        # 실패 시 즉시 중단한다. 변경 없는 상태로 PR action을 호출하면
+        # 검토 중인 브랜치를 main으로 되돌릴 수 있으므로 실제 diff도 확인한다.
+        run: |
+          python scripts/fetch_release.py ${RELEASE_DATE:+--date "$RELEASE_DATE"}
+          changed_files=$(git diff --name-only -- data/release.json)
+          if [ -n "$changed_files" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Open PR if release.json changed
+        if: success() && steps.fetch.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           base: main
           branch: auto/release-update
-          delete-branch: true
+          delete-branch: false
           add-paths: data/release.json
           commit-message: 'data: release.json 자동 갱신'
           title: 'data: 수출입 발표 자동 갱신 (검토 후 머지)'
@@ -63,10 +73,10 @@ jobs:
             `fetch_release.py` 자동 수집·파싱 결과입니다.
 
             **숫자를 확인한 뒤 머지하세요.** 출처는 `data/release.json`의 `source_url`을 참고하세요.
-            변경 사항이 없으면 이 PR은 생성되지 않습니다(자동 수집 실패 시 `scripts/parse_release.py` 수동 폴백 사용).
+            수집 실패·미발표·변경 없음일 때는 기존 검토 브랜치와 PR을 그대로 보존합니다.
 
       - name: Fail job if fetch hard-failed
-        if: steps.fetch.outcome == 'failure'
+        if: failure() && steps.fetch.outcome == 'failure'
         run: |
           echo "::error::fetch_release.py 하드 실패(exit 2) — 위 'Fetch & parse latest release' 스텝의 stderr를 확인하세요. 수동 폴백: python scripts/parse_release.py --url <EIEC 글 URL>"
           echo "## ❌ 발표 자동 갱신 실패" >> "$GITHUB_STEP_SUMMARY"

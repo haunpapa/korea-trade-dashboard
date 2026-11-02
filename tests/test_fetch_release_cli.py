@@ -4,7 +4,6 @@ TDD: 테스트 먼저 작성 (RED → GREEN).
 네트워크·실제 API 없음 — 모두 monkeypatch.
 """
 import json
-from pathlib import Path
 
 import pytest
 
@@ -114,10 +113,10 @@ def test_full_pipeline_success(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# 테스트 5: 기사 없음 → exit 2, 파일 미생성
+# 테스트 5: 기사 없음 → exit 0, 파일 미생성
 # ---------------------------------------------------------------------------
-def test_no_article_returns_2(tmp_path, monkeypatch):
-    """pick_latest_article이 None을 반환하면 exit 2, 파일 미생성."""
+def test_unpublished_article_returns_0(tmp_path, monkeypatch):
+    """pick_latest_article이 None을 반환하면 exit 0, 파일 미생성."""
     monkeypatch.setattr(
         "scripts.fetch_release.httpx.Client",
         lambda **kwargs: _FakeHttpxClient(_CANNED_LIST_HTML),
@@ -132,7 +131,7 @@ def test_no_article_returns_2(tmp_path, monkeypatch):
 
     result = main(["--date", "2026-06-21", "--out", str(out_file)])
 
-    assert result == 2
+    assert result == 0
     assert not out_file.exists()
 
 
@@ -221,3 +220,46 @@ def test_empty_source_url_env_falls_back_to_default(tmp_path, monkeypatch):
 
     assert result == 0
     assert requested == [fetch_release._DEFAULT_LIST_URL]
+
+
+@pytest.mark.parametrize("mode", ["unpublished", "blocked", "network", "parse", "wrong-period", "future-date"])
+def test_collection_outcomes_preserve_existing_file(tmp_path, monkeypatch, mode):
+    import copy
+
+    import httpx
+
+    from app.release_parse import ReleaseParseError
+    from scripts import fetch_release
+
+    out_file = tmp_path / "release.json"
+    original = '{"monthly":{"period":"2026년 10월"},"generated_at":"preserve"}\n'
+    out_file.write_text(original, encoding="utf-8")
+    html = '<a href="./materialView.do?num=2">2026년 6월 1~20일 수출입 현황</a>'
+    if mode == "unpublished":
+        html = '<a href="./materialView.do?num=1">2026년 5월 1~20일 수출입 현황</a>'
+    if mode == "blocked":
+        html = "<h2>정상적인 접근이 아닙니다</h2>"
+    monkeypatch.setattr(fetch_release.httpx, "Client", lambda **kwargs: _FakeHttpxClient(html))
+
+    def network_failure(**kwargs):
+        raise httpx.ConnectError("connection failed")
+
+    if mode == "network":
+        monkeypatch.setattr(fetch_release.httpx, "Client", network_failure)
+    monkeypatch.setattr(fetch_release, "fetch_body", lambda url: "공식 기사 본문")
+    monkeypatch.setattr(fetch_release, "default_client", lambda: None)
+    block = copy.deepcopy(VALID_BLOCK)
+    if mode == "wrong-period":
+        block["period"] = "2026년 5월 1~20일"
+    if mode == "future-date":
+        block["date"] = "2026.06.22"
+
+    def parsed_result(text, kind, client):
+        if mode == "parse":
+            raise ReleaseParseError("invalid official data")
+        return {"twentyday": block}
+
+    monkeypatch.setattr(fetch_release, "parse_release_text", parsed_result)
+    result = fetch_release.main(["--date", "2026-06-21", "--out", str(out_file)])
+    assert result == (0 if mode == "unpublished" else 2)
+    assert out_file.read_text(encoding="utf-8") == original

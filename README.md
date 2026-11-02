@@ -133,8 +133,9 @@ python scripts/export_static.py --push
 > **왜 분리?** 순별(1~10·1~20) 속보는 관세청 Open API에 **없습니다**(API는 월간 확정통계뿐). 순별은 관세청 보도자료로만 공개되므로, 헤드라인은 별도 파일로 큐레이션합니다. 이 파일이 monthly API/정적(추세 차트용)보다 헤드라인에서 **우선**합니다.
 
 ### 자동 — GitHub Actions (`.github/workflows/release.yml`)
-- 매월 **1·11·21일 09~13시 KST** cron이 KDI EIEC/뉴스에서 최신 "수출입 현황" 글을 수집 → Claude로 수치 추출 → pydantic 스키마 검증 → `data/release.json` 갱신 시 **자동 PR**.
-- 사람은 PR의 숫자 diff만 확인하고 **머지(1‑클릭)** → 라이브 반영. 검증 실패·기사 미발견이면 PR을 만들지 않습니다(수동 폴백 사용).
+- 매월 **1~5·11~15·21~25일 09~17시 KST**에 KDI EIEC의 **수출입 검색 목록**을 조회합니다. 휴일·게재 지연에도 재시도하며, 기준일의 발표 회차(연도·월·기간)가 맞는 기사만 파싱합니다.
+- 정상 목록에 해당 회차가 없으면 미게재(no-op), HTTP 오류·오류 HTML·파싱/발표일 불일치는 실패로 처리합니다. 성공하고 `data/release.json`에 실제 변경이 있을 때만 **자동 PR** 단계를 실행합니다. 실패·미게재·변경 없음에서는 검토 브랜치와 PR을 보존합니다.
+- 사람은 PR의 숫자 diff와 회차별 `source_urls`를 확인하고 **머지(1‑클릭)** → 라이브 반영합니다. 작업은 직렬 실행되며 자동 브랜치 삭제는 하지 않습니다.
 - 필요한 설정: 레포 Secret `ANTHROPIC_API_KEY`, Settings→Actions→General에서 "Allow GitHub Actions to create pull requests" 체크. (선택) 변수 `RELEASE_SOURCE_LIST_URL`로 소스 목록 URL 오버라이드.
 
 ### 수동 폴백 — `scripts/parse_release.py`
@@ -144,10 +145,10 @@ python scripts/parse_release.py --kind twentyday --text "<보도자료/기사 �
 python scripts/parse_release.py --kind tenday --url "https://eiec.kdi.re.kr/policy/materialView.do?num=..."
 ```
 
-### ⚠️ 최초 1회 검증 필요 (live-page 추정값)
-실제 발표 전, 아래 두 가지를 실제 페이지로 한 번 확인하세요(틀리면 `pick_latest_article`가 None → 수동 폴백):
-- `scripts/fetch_release.py`의 `RELEASE_SOURCE_LIST_URL` 기본값(EIEC 목록 URL)
-- `app/release_source.py`의 `_MONTHLY_RE` / `_TENDAY_RE` / `_TWENTYDAY_RE` (앵커 텍스트 날짜 표기 매칭)
+### 수집 소스 검증과 수동 복구
+`RELEASE_SOURCE_LIST_URL`은 EIEC 기사 링크(`materialView.do`)가 포함된 목록 HTML을 반환해야 합니다. HTTP 200이어도 접근 오류 HTML이면 실패합니다. 기본값은 `search_txt=수출입&pg=1&pp=20` 검색입니다. 2026-11-01 실제 HTTP 클라이언트로 10월 순별 기사를 선택하는 것을 확인했습니다. 당시 검색 목록에는 10월 월간 기사가 없어 정상 미게재로 처리됐습니다. 클라이언트/접속 환경에 따라 오류 HTML이 반환될 수 있으며, 실제 LLM 호출까지의 전체 자동 경로는 검수에서 실행하지 않았습니다.
+
+공식 원문은 산업통상부·관세청 또는 정책브리핑에서 확인해 수동 폴백으로 처리할 수 있습니다. 발표 연월·기간과 실제 발표일을 확인하고, 미발표 수치는 만들지 않습니다. 월간 HS 통계 수집과 이 발표 헤드라인 수집은 별개입니다.
 
 ## 6. 배포 (Railway — 대시보드 호스팅용)
 

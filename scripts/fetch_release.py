@@ -19,15 +19,14 @@ CI/cron 환경에서 실행되는 완전 자동 스크립트.
 환경 변수
 ---------
   RELEASE_SOURCE_LIST_URL  목록 페이지 URL
-                           (기본: "https://eiec.kdi.re.kr/policy/materialList.do?type=A")
-                           # 주의: 이 기본값과 release_source의 정규식은 라이브 페이지
-                           # 구조를 기반으로 한 추정값입니다. 첫 실행 시 반드시
-                           # 실제 페이지에서 HTML 구조를 확인해야 합니다.
+                           (기본: EIEC의 수출입 검색 목록, 첫 20건)
+                           # 접근 오류 HTML과 정상 목록을 구분한다.
+                           # 기사 미게재/목록 첫 페이지 미노출이면 다음 실행에서 재시도한다.
 
 종료 코드
 ---------
   0 — 성공 (업데이트 완료 또는 변경 없음 no-op)
-  2 — 하드 실패 (기사 없음, 수집 오류, 파싱 오류, 검증 오류)
+  2 — 하드 실패 (수집 오류, 비정상 목록, 파싱 오류, 검증 오류)
 """
 
 from __future__ import annotations
@@ -37,7 +36,7 @@ import datetime
 import logging
 import os
 import sys
-from datetime import timezone, timedelta
+from datetime import timedelta, timezone
 from pathlib import Path
 
 # 레포 루트를 sys.path에 추가하여 app.* 임포트 가능하게 함
@@ -48,13 +47,19 @@ if str(ROOT) not in sys.path:
 import httpx  # noqa: E402
 
 from app.release_parse import ReleaseParseError, default_client, parse_release_text  # noqa: E402
-from app.release_source import SourceError, detect_kind, fetch_body, pick_latest_article  # noqa: E402
+from app.release_period import ReleaseTarget  # noqa: E402
+from app.release_source import (  # noqa: E402
+    SourceError,
+    detect_kind,
+    fetch_body,
+    pick_latest_article,
+)
 from app.release_store import block_changed, merge_release_block  # noqa: E402
 
 logger = logging.getLogger("fetch_release")
 
-# 기본값 — 실제 라이브 페이지 구조 확인 필요 (추정값)
-_DEFAULT_LIST_URL = "https://eiec.kdi.re.kr/policy/materialList.do?type=A"
+# 일반 정책 목록에 발표가 묻히지 않도록 실제 EIEC 검색 폼을 사용한다.
+_DEFAULT_LIST_URL = "https://eiec.kdi.re.kr/policy/materialList.do?type=A&search_txt=수출입&pg=1&pp=20"
 
 # 기본 출력 경로
 _DEFAULT_OUT = ROOT / "data" / "release.json"
@@ -146,15 +151,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"목록 페이지 수집 오류 ({list_url}): {exc}", file=sys.stderr)
         return 2
 
-    # 목록에서 해당 kind 최신 기사 URL 선택
-    article_url = pick_latest_article(list_html, kind, base_url=list_url)
-    if article_url is None:
-        logger.warning("해당 회차 기사 없음 — kind=%s, list_url=%s", kind, list_url)
-        print(
-            f"해당 회차 기사 없음 (kind={kind}). 수동 폴백(parse_release.py)을 사용하세요.",
-            file=sys.stderr,
-        )
+    # 요청한 회차만 선택한다. HTTP 200 오류 페이지를 미발표로 취급하지 않는다.
+    target = ReleaseTarget(kind, date)
+    try:
+        article_url = pick_latest_article(list_html, target, base_url=list_url)
+    except SourceError as exc:
+        logger.error("목록 검증 실패: %s", exc)
         return 2
+    if article_url is None:
+        logger.info("해당 회차 미게재(no-op) — date=%s, kind=%s", date, kind)
+        return 0
 
     logger.info("기사 URL: %s", article_url)
 
@@ -180,6 +186,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     block = parsed[kind]
+    if not target.matches_period(block["period"]) or not target.matches_publication_date(block["date"]):
+        logger.error("파싱된 발표 회차/발표일 불일치 — period=%s, date=%s", block["period"], block["date"])
+        return 2
 
     # 변경 여부 확인 — 동일하면 no-op (파일 미기록)
     if not block_changed(out, kind, block):
