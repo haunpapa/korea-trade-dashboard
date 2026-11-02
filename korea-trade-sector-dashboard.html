@@ -260,6 +260,7 @@
   /* ---------- Responsive ---------- */
   @media(max-width:860px){
     .kpis{grid-template-columns:repeat(2,1fr)}
+    .kpi:nth-child(even) .tip>span{left:auto;right:0}
     .matrix{grid-template-columns:1fr}
     .grp.lead{grid-column:auto}
     .cols{grid-template-columns:1fr}
@@ -1013,7 +1014,7 @@ async function hydrate(){
   if(fresh && !FX.some(x=>x&&x.rate!=null)){
     try{ const f=await fetchJson(STATIC_DATA_BASE+"/fx.json"); if(Array.isArray(f)&&f.some(x=>x&&x.rate!=null)) FX=f; }catch(e){}
   }
-  if(fresh){ DATA_SOURCE=fresh; LIVE=true; saveLocal(); buildTrendTabs(); render(); }
+  if(fresh){ DATA_SOURCE=fresh; LIVE=true; saveLocal(); buildSeg(); buildTrendTabs(); render(); }
   buildTrend();  // 성공/실패 모두 '연동 중' 표시 원복
 }
 
